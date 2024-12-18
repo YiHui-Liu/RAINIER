@@ -395,18 +395,20 @@ void ReadDisInputFile() {
     istringstream issLvl(sLvlLine);
     int nLvl, nLvlPar, nLvlGam;
     double dLvlEner, dLvlSp, dLvlT12;
-    issLvl >> nLvl >> dLvlEner >> dLvlSp >> nLvlPar >> dLvlT12 >> nLvlGam;
+    nLvl = atoi(sLvlLine.substr(0, 3).c_str());
+    dLvlEner = atof(sLvlLine.substr(5, 9).c_str());
+    dLvlSp = atof(sLvlLine.substr(16, 4).c_str());
+    nLvlPar = atoi(sLvlLine.substr(21, 2).c_str());
+    dLvlT12 = atof(sLvlLine.substr(25, 9).c_str());
+    nLvlGam = atoi(sLvlLine.substr(36, 2).c_str());
     nLvl--; // to match convention of ground state is lvl 0
 
     if (nLvlPar == -1)
       nLvlPar = 0; // 1=+, 0=- diff convention dicebox and talys
     if (nLvl != lvl || lvl > nLvlTot)
       cerr << "err: File mismatch" << endl;
-    if (int(dLvlT12) == dLvlT12) {
-      // sometimes no halflife meas
-      nLvlGam = dLvlT12; // missing half-life
+    if (!dLvlT12) // sometimes no halflife meas, missing half-life
       dLvlT12 = 999;
-    }
 
     g_adDisEne[lvl] = dLvlEner;
     g_adDisSp[lvl] = dLvlSp;
