@@ -1,0 +1,9 @@
+# Settings
+.vscode
+
+# Output Files
+*.m
+Input*.dat
+Param*.dat
+Run*.root
+Nd144Pop.dat
