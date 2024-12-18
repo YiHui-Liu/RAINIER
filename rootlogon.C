@@ -1,4 +1,8 @@
-{
+#include "TString.h"
+#include "TStyle.h"
+#include "TSystem.h"
+
+void rootlogon() {
   TString cmd(gSystem->GetMakeSharedLib());
   cmd.ReplaceAll("g++", "g++ -fopenmp");
   gSystem->SetMakeSharedLib(cmd);
