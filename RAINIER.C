@@ -1,24 +1,8 @@
 /********************* RAINIER l.kirsch 04/27/2017 start date *****************/
-/********************* version 1.2.0:   02/14/2018 add table+usr def models****/
+/********************* version 1.2.0    ***************************************/
 /********************* lekirsch@lbl.gov ***************************************/
-//  ____________________________________________
-// |* * * * * * * *|############################|
-// | * * * * * * * |                            |
-// |* * * * * * * *|############################|
-// | * * * * * * * |                            |
-// |* * * * * * * *|############################|
-// | * * * * * * * |                            |
-// |* * * * * * * *|############################|
-// |~~~~~~~~~~~~~~~'                            |
-// |############################################|
-// |                                            |
-// |############################################|
-// |                                            |
-// |############################################|
-// '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+
 // Randomizer of Assorted Initial Nuclear Intensities and Emissions of Radiation
-// to run in bash:
-// $ root RAINIER.C++
 
 // doubles, ints, and bools marked with prescript "d", "n", and "b" respectively
 // arrays marked with prescript "a"
@@ -31,14 +15,103 @@
 // the term "spin" usually means "angular momentum" in this code
 
 ////////////////////////////////////////////////////////////////////////////////
+////////////////////// Global Settings /////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////// Nuclei Settings /////////////////////////////////////////
+const int g_nZ = 56;      // proton number
+const int g_nAMass = 142; // proton + neutron number
+
+////////////////////// Run Settings ////////////////////////////////////////////
+const int g_nReal = 1;                            // number of realizations of nuclear level scheme
+const int g_nEvent = 1e4;                         // number of events per realization (and ExI in bExSpread)
+const int g_nEbins = 100;                         // number of progess bins
+const int g_nEvUpdate = int(g_nEvent / g_nEbins); // print progress to screen at this interval
+
+////////////////////// Parallel Settings ///////////////////////////////////////
+// should handle itself, email me if you get it to work on Mac or PC
+#ifdef __CLING__
+// cling in root6 won't parse omp.h. but man, root5 flies with 24 cores!
+#else
+#ifdef __linux__  // MacOS wont run omp.h by default, might exist workaround
+#define bParallel // Parallel Option
+// ROOT hisograms not thread safe, but only miss ~1e-5 events
+#endif            // linux
+#endif            // cling
+
+#ifdef bParallel
+#ifndef CINT
+#include "omp.h" // for parallel on shared memory machine (not cluster yet)
+#endif           // cint
+#endif           // parallel
+
+////////////////////// Analysis Settings ///////////////////////////////////////
+const double g_dPlotSpMax = 10.0;
+///// JPop Analysis /////
+// const int g_anPopLvl[] = {4,6,8,10,7,9};// low-ly populated lvls,0 = gs //56Fe
+const int g_anPopLvl[] = {13, 8, 14, 10, 6, 11}; // 144Nd
+///// DRTSC Analysis
+// const int g_anDRTSC[] = {1,3,5,8,12,13,15}; // 56Fe
+const int g_anDRTSC[] = {1, 4, 6, 15}; // 144Nd
+const int g_nEgBin = 500;
+
+////////////////////////////////////////////////////////////////////////////////
 ////////////////////// Input Parameters ////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////// Discrete Settings ///////////////////////////////////////
 // #define bPrintLvl // print both discrete and constructed lvl schemes
-const int g_nZ = 60;         // proton number
-const int g_nAMass = 144;    // proton + neutron number
-const int g_nDisLvlMax = 16; // only trust level scheme to here, sets ECrit
+const int g_nDisLvlMax = 38; // only trust level scheme to here, sets ECrit
+
+////////////////////// Excitation Settings /////////////////////////////////////
+// choose one, fill in corresponding params:
+#define bExSingle // single population input
+// #define bExSelect // like Beta decay
+// #define bExSpread  // ejectile detected input
+// #define bExFullRxn // no ejectile detected input
+
+#ifdef bExSingle                // similar to (n,g)
+const double g_dExIMax = 7.328; // MeV, Ei - "capture state energy"
+const double g_dSpI = 4.0;      // hbar, Ji - "capture state spin"
+const double g_dParI = 1;       // Pi - "capture state parity" 0=(-), 1=(+)
+#endif
+
+#ifdef bExSelect // similar to Beta decay
+const double g_adExI[] = {0,       0.88489, 1.78662, 2.69324, 2.89503, 3.0383,  3.3418, 3.47668,
+                          3.59912, 3.78828, 3.8483,  3.9039,  4.0016,  4.06142, 4.2646, 4.30903,
+                          4.46481, 4.5144,  4.5583,  4.5889,  4.7101,  4.7917,  4.8492, 5.0613};    // MeV
+const double g_adSpI[] = {0, 2, 4, 4, 6, 5, 3, 5, 6, 6, 5, 5, 6, 5, 6, 5, 7, 6, 5, 7, 7, 5, 5, 5};  // hbar
+const double g_anParI[] = {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0}; // Pi
+const double g_adBRI[] = {0,      0,     0,      0,      0.014,  0.58,   0.0094, 0.061,  0.0103,
+                          0.0325, 0.049, 0.0057, 0.0074, 0.0141, 0.0216, 0.0236, 0.0415, 0.0135,
+                          0.0298, 0.014, 0.0104, 0.0057, 0.0519, 0.005}; // Branching Ratio: sums to 1.0
+#endif
+
+#ifdef bExSpread // similar to (p,p'), (a,a'), (he3,a'), etc.
+// populates J according to intrinsic distribution, u can hardcode something else
+const double g_dExIMax = 8.0; // MeV; constructed lvl scheme built up to this
+// dont exceed with init excitations - gaus might sample higher than expected
+const double g_adExIMean[] = {3.0, 4.0, 5.0, 6.0, 7.0}; // MeV
+const double g_dExISpread = 0.2 / 2.355;                // MeV; std dev sigma = FWHM / 2.355
+const double g_dExRes = 0.2;                            // excitation resolution on g_ah2ExEg for analysis
+#define bJIUnderlying                                   // initial population = intrinsic J dist of the nucleus
+// #define bJIPoisson
+// #define bJIGaus
+#ifdef bJIPoisson
+const double g_dJIMean = 3.5;
+#endif
+#ifdef bJIGaus
+const double g_dJIMean = 3.5;
+const double g_dJIWid = 0.5;
+#endif
+#endif
+
+#ifdef bExFullRxn                      // from a TALYS output file if available
+const double g_dExIMax = 16.0;         // MeV; above max population energy
+const char popFile[] = "Nd144Pop.dat"; // made from TALYS "outpopulation y"
+// make sure to match # of discrete bins. See ReadPopFile() bins + maxlevelstar + 1 = g_nExPopI
+const double g_dExRes = 0.2 / 2.355; // excitation resolution on g_ah2ExEg
+#endif
 
 ///////////////////// Constructed Level Scheme Settings ////////////////////////
 ///// Bins /////
@@ -50,9 +123,6 @@ const int g_nConEBin = 400; // number of energy bins in constructed scheme
 const double g_dConESpac = 0.01; // MeV; wont matter if forcing bin number
 int g_nConEBin;
 #endif // bForceBinNum
-
-///// Level Density, LD, model /////
-// choose one, fill in corresponding parameters
 
 ///// Level Density, LD, model /////
 // choose one, fill in corresponding parameters
@@ -102,9 +172,9 @@ const double g_dShellDelW = 0.0; // MeV; M_exp - M_LDM ~ shell correction
 
 ///// Spin Cutoff /////
 // choose one:
-// #define bJCut_VonEgidy05 // low-energy model
+#define bJCut_VonEgidy05 // low-energy model
 // #define bJCut_SingPart // single particle model
-#define bJCut_RigidSph // rigid sphere model
+// #define bJCut_RigidSph // rigid sphere model
 // #define bJCut_VonEgidy09 // empirical fit
 // #define bJCut_TALYS // TALYS rigid sphere and discrete interpolation
 // #define bJCut_UsrDef // user defined
@@ -130,8 +200,8 @@ const double g_dParD = 0.0; // MeV
 #endif                      // the interested coder can put a parity dependece on the bLD_Table option
 
 ///// Level spacing distribution /////
-#define bPoisson // good approx to lvl spacing, might have more severe fluct
-// #define bWigner // more representative of nuc lvl spacing, but more t to init
+// #define bPoisson // good approx to lvl spacing, might have more severe fluct
+#define bWigner // more representative of nuc lvl spacing, but more t to init
 
 /////////////////////// Gamma Strength Function, GSF, Settings /////////////////
 ///// Width Fluctuations Distribution (WFD)-reason statistical codes exist /////
@@ -148,11 +218,12 @@ const double g_dNu = 0.5; // See Koehler PRL105,072502(2010): measured nu~0.5
 #ifdef bGSF_Table
 #include "GSFTable.dat" // just placeholder values in this file for now
 #else
+
 // Parameters from TALYS defaults usually an acceptable start
 ///// fE1 /////
 // choose one:
 #define bE1_GenLor  // General Lorentzian
-// #define bE1_EGLO //Enhanced Generalized Lorentzian for A>148;
+// #define bE1_EGLO // Enhanced Generalized Lorentzian for A>148;
 //   -> allow "#define bE1_GenLor" when using #define bE1_EGLO
 // #define bE1_KMF // Kadmenskij Markushev Furman model
 // #define bE1_KopChr // Kopecky Chrien model
@@ -183,6 +254,12 @@ const double g_dSpSigM1 = 4e-11; // MeV^-3
 #define bE2_StdLor // standard Lorentzian, parameterized by Prestwich
 // #define bE2_UsrDef // user defined
 // #define bE2_SingPart // single particle
+#ifdef bE2_StdLor
+// Prestwich Physics A Atoms and Nuclei 315, 103-111 (1984)
+const double g_dEneE2 = 63.0 * pow(g_nAMass, -1 / 3.0);
+const double g_dGamE2 = 6.11 - 0.012 * g_nAMass;
+const double g_dSigE2 = 1.4e-4 * pow(g_nZ * g_dEneE2, 2.0) / (pow(g_nAMass, 1 / 3.0) * g_dGamE2);
+#endif
 #ifdef bE2_SingPart
 const double g_dSpSigE2 = 4e-11; // MeV^-5
 #endif
@@ -196,86 +273,20 @@ const int g_nBinICC = 100;                  // Energy bins of BrIcc - more takes
 const double g_dICCMin = g_dConESpac / 2.0; // uses 1st Ebin ICC val below this
 const double g_dICCMax = 1.0;               // MeV; Uses last Ebin ICC value for higher E
 
-////////////////////// Run Settings ////////////////////////////////////////////
-const int g_nReal = 1;       // number of realizations of nuclear level scheme
-const int g_nEvent = 1e3;    // number of events per realization (and ExI in bExSpread)
-const int g_nEvUpdate = 1e2; // print progress to screen at this interval
-
-////////////////////// Excitation Settings /////////////////////////////////////
-// choose one, fill in corresponding params:
-#define bExSingle // single population input
-// #define bExSelect // like Beta decay
-// #define bExSpread  // ejectile detected input
-// #define bExFullRxn // no ejectile detected input
-
-#ifdef bExSingle                 // similar to (n,g)
-const double g_dExIMax = 7.8174; // MeV, Ei - "capture state energy"
-const double g_dSpI = 3.0;       // hbar, Ji - "capture state spin"
-const double g_dParI = 0;        // Pi - "capture state parity" 0=(-), 1=(+)
-#endif
-
-#ifdef bExSelect // similar to Beta decay
-const double g_adExI[] = {0,       0.88489, 1.78662, 2.69324, 2.89503, 3.0383,  3.3418, 3.47668,
-                          3.59912, 3.78828, 3.8483,  3.9039,  4.0016,  4.06142, 4.2646, 4.30903,
-                          4.46481, 4.5144,  4.5583,  4.5889,  4.7101,  4.7917,  4.8492, 5.0613};    // MeV
-const double g_adSpI[] = {0, 2, 4, 4, 6, 5, 3, 5, 6, 6, 5, 5, 6, 5, 6, 5, 7, 6, 5, 7, 7, 5, 5, 5};  // hbar
-const double g_anParI[] = {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0}; // Pi
-const double g_adBRI[] = {0,      0,     0,      0,      0.014,  0.58,   0.0094, 0.061,  0.0103,
-                          0.0325, 0.049, 0.0057, 0.0074, 0.0141, 0.0216, 0.0236, 0.0415, 0.0135,
-                          0.0298, 0.014, 0.0104, 0.0057, 0.0519, 0.005}; // Branching Ratio: sums to 1.0
-#endif
-
-#ifdef bExSpread // similar to (p,p'), (a,a'), (he3,a'), etc.
-// populates J according to intrinsic distribution, u can hardcode something else
-const double g_dExIMax = 8.0; // MeV; constructed lvl scheme built up to this
-// dont exceed with init excitations - gaus might sample higher than expected
-const double g_adExIMean[] = {3.0, 4.0, 5.0, 6.0, 7.0}; // MeV
-const double g_dExISpread = 0.2 / 2.355;                // MeV; std dev sigma = FWHM / 2.355
-const double g_dExRes = 0.2;                            // excitation resolution on g_ah2ExEg for analysis
-#define bJIUnderlying                                   // initial population = intrinsic J dist of the nucleus
-// #define bJIPoisson
-// #define bJIGaus
-#ifdef bJIPoisson
-const double g_dJIMean = 3.5;
-#endif
-#ifdef bJIGaus
-const double g_dJIMean = 3.5;
-const double g_dJIWid = 0.5;
-#endif
-#endif
-
-#ifdef bExFullRxn                      // from a TALYS output file if available
-const double g_dExIMax = 16.0;         // MeV; above max population energy
-const char popFile[] = "Nd144Pop.dat"; // made from TALYS "outpopulation y"
-// make sure to match # of discrete bins. See ReadPopFile() bins + maxlevelstar + 1 = g_nExPopI
-const double g_dExRes = 0.2 / 2.355; // excitation resolution on g_ah2ExEg
-#endif
-
-////////////////////// Analysis Settings ///////////////////////////////////////
-const double g_dPlotSpMax = 10.0;
-///// JPop Analysis /////
-// const int g_anPopLvl[] = {4,6,8,10,7,9};// low-ly populated lvls,0 = gs //56Fe
-const int g_anPopLvl[] = {13, 8, 14, 10, 6, 11}; // 144Nd
-///// DRTSC Analysis
-// const int g_anDRTSC[] = {1,3,5,8,12,13,15}; // 56Fe
-const int g_anDRTSC[] = {1, 4, 6, 15}; // 144Nd
-const int g_nEgBin = 500;
-
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////// End Input Parameters ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////// Program Includes ///////////////////////////////
-#include "TTimeStamp.h"
-#include "math.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <math.h>
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-using namespace std;
+
 #include "TRandom2.h"
 // 2=Tausworthe is faster and smaller than 3=Mersenne Twister (MT19937)
 // search and replace "TRandom2" to "TRandom3" to change PRNG
@@ -285,8 +296,10 @@ using namespace std;
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TMath.h"
+#include "TROOT.h"
 #include "TString.h"
-#include <TROOT.h>
+#include "TTimeStamp.h"
+
 // determine OS for briccs
 #ifdef __linux__
 char cbriccs[] = "briccs";
@@ -298,29 +311,7 @@ char cbriccs[] = "briccsMac";
 char cbriccs[] = "BrIccS.exe"; // haven't done any windows testing yet
 #endif
 
-/////////////////////////////// Parallel Settings //////////////////////////////
-// should handle itself, email me if you get it to work on Mac or PC
-#ifdef __CLING__
-// cling in root6 won't parse omp.h. but man, root5 flies with 24 cores!
-#else
-#ifdef __linux__ // MacOS wont run omp.h by default, might exist workaround
-// #define bParallel // Parallel Option
-//  ROOT hisograms not thread safe, but only miss ~1e-5 events
-#endif           // linux
-#endif           // cling
-
-#ifdef bParallel
-#ifndef CINT
-#include "omp.h" // for parallel on shared memory machine (not cluster yet)
-#endif           // cint
-#endif           // parallel
-
-#ifdef bE2_StdLor
-// Prestwich Physics A Atoms and Nuclei 315, 103-111 (1984)
-const double g_dEneE2 = 63.0 * pow(g_nAMass, -1 / 3.0);
-const double g_dGamE2 = 6.11 - 0.012 * g_nAMass;
-const double g_dSigE2 = 1.4e-4 * pow(g_nZ * g_dEneE2, 2.0) / (pow(g_nAMass, 1 / 3.0) * g_dGamE2);
-#endif
+using namespace std;
 
 const double g_dKX1 = 8.673592583E-08; // mb^-1 MeV^-2;  = 1/(3*(pi*hbar*c)^2)
 
@@ -1768,12 +1759,12 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
 TF1 *fnLDa, *fnSpCut, *fnGSFE1, *fnGSFM1, *fnGSFE2, *fnGSFTot;
 TH1D *g_hJIntrins;
 void InitFn() {
-  fnLDa = new TF1("fnLDa", "GetLDa(x)", 0, 10);
-  fnSpCut = new TF1("fnSpCut", "sqrt(GetSpinCut2(x))", 0, 10);
-  fnGSFE1 = new TF1("fnGSFE1", "GetStrE1([0],x)/x**3", 0, 18);
-  fnGSFM1 = new TF1("fnGSFM1", "GetStrM1(x)/x**3", 0, 18);
-  fnGSFE2 = new TF1("fnGSFE2", "GetStrE2(x)/x**5", 0, 18);
-  fnGSFTot = new TF1("fnGSFTot", "GetStrE1([0],x)/x**3 + GetStrM1(x)/x**3 + GetStrE2(x)/x**5", 0, 18);
+  // fnLDa = new TF1("fnLDa", "GetLDa(x)", 0, 10);
+  // fnSpCut = new TF1("fnSpCut", "sqrt(GetSpinCut2(x))", 0, 10);
+  // fnGSFE1 = new TF1("fnGSFE1", "GetStrE1([0],x)/x**3", 0, 18);
+  // fnGSFM1 = new TF1("fnGSFM1", "GetStrM1(x)/x**3", 0, 18);
+  // fnGSFE2 = new TF1("fnGSFE2", "GetStrE2(x)/x**5", 0, 18);
+  // fnGSFTot = new TF1("fnGSFTot", "GetStrE1([0],x)/x**3 + GetStrM1(x)/x**3 + GetStrE2(x)/x**5", 0, 18);
 
   double dEx = 0.5 * g_dExIMax; // spincut is slowly varying fn of E
   g_hJIntrins = new TH1D("hJIntrins", "Underlying J Dist", int(g_dPlotSpMax), 0.0, int(g_dPlotSpMax));
@@ -1844,9 +1835,9 @@ void RAINIER(int g_nRunNum = 1) {
 #endif
 
       ///// Initialize Histograms /////
-      g_ah2PopLvl[real][exim] = new TH2D(
-          Form("h2ExI%dPopLvl_%d", exim, real), Form("Population of Levels: %2.1f MeV, Real%d", dExIMean, real),
-          2 * g_dPlotSpMax, -g_dPlotSpMax, g_dPlotSpMax, g_dExIMax / g_dConESpac, 0, g_dExIMax);
+      g_ah2PopLvl[real][exim] = new TH2D(Form("h2ExI%dPopLvl_%d", exim, real),
+                                         Form("Population of Levels: %2.1f MeV, Real%d", dExIMean, real),
+                                         2 * g_dPlotSpMax, -g_dPlotSpMax, g_dPlotSpMax, 50, 0, g_dExIMax);
 
       double dFeedTimeMax =
           (270 - 20) / (5.5 - 11.0) * dExIMean + 520; // fs
@@ -2204,6 +2195,7 @@ void RAINIER(int g_nRunNum = 1) {
   SAVE_PAR(ofParam, g_dExISpread);
   SAVE_PAR(ofParam, g_dExIMax);
   SAVE_PAR(ofParam, g_dPlotSpMax);
+  SAVE_PAR(ofParam, g_dConESpac);
   SAVE_PAR(ofParam, g_nReal);
   SAVE_PAR(ofParam, g_nExIMean);
   SAVE_PAR(ofParam, g_nEvent);
@@ -2234,4 +2226,9 @@ void RAINIER(int g_nRunNum = 1) {
   cout << "Time elapsed during RAINIER execution: " << dElapsedSec << " sec" << endl;
   gROOT->ProcessLine(".L Analyze.C");   // load the separate analysis file
   gROOT->ProcessLine("RetrievePars()"); // linking files is always wonky in ROOT
-} // main
+} // RAINIER
+
+int main() {
+  RAINIER();
+  return 0;
+}
