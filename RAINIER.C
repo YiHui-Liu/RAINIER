@@ -319,7 +319,7 @@ char cbriccs[] = "BrIccS.exe"; // haven't done any windows testing yet
 // Prestwich Physics A Atoms and Nuclei 315, 103-111 (1984)
 const double g_dEneE2 = 63.0 * pow(g_nAMass, -1 / 3.0);
 const double g_dGamE2 = 6.11 - 0.012 * g_nAMass;
-const double g_dSigE2 = 1.4e-4 * pow(g_nZ, 2.0) * g_dEneE2 / (pow(g_nAMass, 1 / 3.0) * g_dGamE2);
+const double g_dSigE2 = 1.4e-4 * pow(g_nZ * g_dEneE2, 2.0) / (pow(g_nAMass, 1 / 3.0) * g_dGamE2);
 #endif
 
 const double g_dKX1 = 8.673592583E-08; // mb^-1 MeV^-2;  = 1/(3*(pi*hbar*c)^2)
