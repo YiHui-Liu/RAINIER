@@ -7,3 +7,6 @@ Input*.dat
 Param*.dat
 Run*.root
 Nd144Pop.dat
+
+# Binary Files
+RAINIER

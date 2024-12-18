@@ -251,6 +251,7 @@ const double g_dSpSigM1 = 4e-11; // MeV^-3
 #endif
 
 ///// fE2 /////
+#include <math.h>
 #define bE2_StdLor // standard Lorentzian, parameterized by Prestwich
 // #define bE2_UsrDef // user defined
 // #define bE2_SingPart // single particle
@@ -281,7 +282,6 @@ const double g_dICCMax = 1.0;               // MeV; Uses last Ebin ICC value for
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
