@@ -183,19 +183,20 @@ void AnalyzeOslo(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
 } // Oslo
 
 /////////////////////////////// All Populations ////////////////////////////////
-void AnalyzePop(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
+void AnalyzePop(int exim0 = nExIMean - 1, int real0 = nReal - 1, bool bDiscrete = false) {
   if ((exim0 < nExIMean) && (real0 < nReal)) {
     TCanvas *cPop = new TCanvas("cPop", "cPop", 800, 650);
     cPop->SetLogz();
     TH2D *h2PopLvl0 = (TH2D *)fSaveFile->Get(Form("h2ExI%dPopLvl_%d", exim0, real0));
     h2PopLvl0->Draw("colz");
     fnECrit->Draw("Same");
-    for (size_t i = 0; i < nDisLvlMax; i++) {
-      TF1 *fnTmp = new TF1("fnTmp", Form("%f", adDisEne[i]), -dPlotSpMax, dPlotSpMax);
-      fnTmp->SetLineStyle(2);
-      fnTmp->SetLineColor(kBlack);
-      fnTmp->Draw("Same");
-    }
+    if (bDiscrete)
+      for (size_t i = 0; i < nDisLvlMax; i++) {
+        TF1 *fnTmp = new TF1("fnTmp", Form("%f", adDisEne[i]), -dPlotSpMax, dPlotSpMax);
+        fnTmp->SetLineStyle(2);
+        fnTmp->SetLineColor(kGray);
+        fnTmp->Draw("Same");
+      }
   } else {
     cout << "Non existent ExIMean or Realization" << endl;
   }
