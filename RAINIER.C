@@ -986,7 +986,7 @@ double GetStrE1(double dEx, double dEg) {
 #endif // bGSF_Table
 
   if (dStr < 0) {
-    cerr << "err: Negative strength" << endl;
+    cerr << "err: Negative strength E1" << endl;
   }
   return dStr * pow(dEg, 3); // Eg^(2L+1) so this in not formally gamma strength
 } // GetStrE1
@@ -1022,7 +1022,7 @@ double GetStrM1(double dEg) {
 
 #endif // bGSF_Table
   if (dStr < 0) {
-    cerr << "err: Negative strength" << endl;
+    cerr << "err: Negative strength M1" << endl;
   }
   return dStr * pow(dEg, 3);
 }
@@ -1049,7 +1049,7 @@ double GetStrE2(double dEg) {
   double dStr = grGSF_E2->Eval(dEg);
 #endif
   if (dStr < 0) {
-    cerr << "err: Negative strength" << endl;
+    cerr << "err: Negative strength E2" << endl;
   }
   return dStr * pow(dEg, 5);
 }
