@@ -1782,17 +1782,18 @@ void InitFn() {
 
 } // InitFn
 
-TH2D *g_ah2PopLvl[g_nReal][g_nExIMean];
-TH1D *g_ahDisPop[g_nReal][g_nExIMean];
-TH1D *g_ahJPop[g_nReal][g_nExIMean];
-TH1D *g_ahTSC[g_nReal][g_nExIMean][g_nDisLvlMax];
-TH1D *g_ahDRTSC[g_nReal][g_nExIMean][g_nDRTSC];
-TH2D *g_ah2FeedTime[g_nReal][g_nExIMean];
-TH2D *g_ah2ExEg[g_nReal][g_nExIMean];
-TH2D *g_ah21Gen[g_nReal][g_nExIMean];
-TH1D *g_ahGSpec[g_nReal][g_nExIMean];
-TH1D *g_ahICSpec[g_nReal][g_nExIMean];
-TH2D *g_ah2PopI[g_nReal][g_nExIMean];
+TH2D *g_ah2PopLvl[g_nReal][g_nExIMean];           // Decay scheme
+TH1D *g_ahDisPop[g_nReal][g_nExIMean];            // Discrete population during decay
+TH1D *g_ahJPop[g_nReal][g_nExIMean];              // Initial J population
+TH1D *g_ahTSC[g_nReal][g_nExIMean][g_nDisLvlMax]; // g_ahTSC[real][exim][k]: Two Step Cascade to discrete level k
+TH1D *g_ahDRTSC[g_nReal][g_nExIMean][g_nDRTSC];   // g_ahDRTSC[real][m][k]: initial state m (generated from DR) one step
+                                                  // decay to discrete level k
+TH2D *g_ah2FeedTime[g_nReal][g_nExIMean];         // Accumulative feeding time vs. level
+TH2D *g_ah2ExEg[g_nReal][g_nExIMean];             // E signle (x) v.s. E sum (y)
+TH2D *g_ah21Gen[g_nReal][g_nExIMean];             // E step 1 (x) v.s. E sum (y)
+TH1D *g_ahGSpec[g_nReal][g_nExIMean];             // Gamma spectrum
+TH1D *g_ahICSpec[g_nReal][g_nExIMean];            // Internal Conversion Electron Spectrum
+TH2D *g_ah2PopI[g_nReal][g_nExIMean];             // Initial population of J
 TGraph *g_grTotWidAvg[g_nExIMean];
 
 /******************************************************************************/
@@ -1837,7 +1838,7 @@ void RAINIER(int g_nRunNum = 1) {
       ///// Initialize Histograms /////
       g_ah2PopLvl[real][exim] = new TH2D(Form("h2ExI%dPopLvl_%d", exim, real),
                                          Form("Population of Levels: %2.1f MeV, Real%d", dExIMean, real),
-                                         2 * g_dPlotSpMax, -g_dPlotSpMax, g_dPlotSpMax, 50, 0, g_dExIMax);
+                                         2 * g_dPlotSpMax, -g_dPlotSpMax, g_dPlotSpMax, g_nEgBin, 0, g_dExIMax);
 
       double dFeedTimeMax =
           (270 - 20) / (5.5 - 11.0) * dExIMean + 520; // fs
