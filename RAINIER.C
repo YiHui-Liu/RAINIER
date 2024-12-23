@@ -31,8 +31,8 @@ const int g_nEvUpdate = int(g_nEvent / g_nEbins); // print progress to screen at
 ////////////////////// Detector Settings ///////////////////////////////////////
 // #define bExIResConst // constant energy resolution
 #ifdef bExIResConst
-const double dExIRes = 0.2; // FWHM (energy resolution) in MeV, std dev sigma = FWHM / 2.355
-#else                       // p[0] * pow(x, p[1])
+const double g_dExIRes = 0.2; // FWHM (energy resolution) in MeV, std dev sigma = FWHM / 2.355
+#else                         // p[0] * pow(x, p[1])
 const double g_dExIResp0 = 2.8;
 const double g_dExIResp1 = 0.55;
 #endif
@@ -513,7 +513,7 @@ void ReadPopFile() {
 ////////////////////////// Detector ////////////////////////////////////////////
 double GetExIRes(double dEx) {
 #ifdef bExIResConst
-  return dExIRes / 2.355;
+  return g_dExIRes / 2.355;
 #else
   return g_dExIResp0 * pow(dEx * 1000, g_dExIResp1) / 2.355 / 1000;
 #endif
@@ -2210,7 +2210,7 @@ void RAINIER(int g_nRunNum = 1) {
   ofParam.open(sParFile.Data());
   SAVE_PAR(ofParam, g_dECrit);
 #ifdef bExIResConst
-  SAVE_PAR(ofParam, dExIRes);
+  SAVE_PAR(ofParam, g_dExIRes);
 #else
   SAVE_PAR(ofParam, g_dExIResp0);
   SAVE_PAR(ofParam, g_dExIResp1);
