@@ -390,7 +390,7 @@ void ReadDisInputFile() {
     dLvlEner = atof(sLvlLine.substr(5, 9).c_str());
     dLvlSp = atof(sLvlLine.substr(16, 4).c_str());
     nLvlPar = atoi(sLvlLine.substr(21, 2).c_str());
-    dLvlT12 = atof(sLvlLine.substr(25, 9).c_str());
+    dLvlT12 = atof(sLvlLine.substr(24, 10).c_str());
     nLvlGam = atoi(sLvlLine.substr(36, 2).c_str());
     nLvl--; // to match convention of ground state is lvl 0
 
