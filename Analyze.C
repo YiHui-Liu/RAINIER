@@ -430,7 +430,6 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
 
   double dFeedTimeMax = 220;
   TF1 *expo2 = new TF1("expo2", "[0]*exp(-x/[1]) + [2]*exp(-x/[3])", 0.001, dFeedTimeMax);
-  expo2->SetLineColor(kBlack);
 
   TH2D *ah2FeedTime[nReal][nExIMean];
   for (int real = 0; real < nReal; real++) {
@@ -451,6 +450,8 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
             (TH1D *)ah2FeedTime[real][exim]->ProjectionY(Form("hEx%dFeed%d_%d", exim, lvl, real), lvl, lvl + 1);
 
         double dMaxCount = hLvlTimeProj[real][exim][lvl]->GetMaximum();
+        expo2->SetLineColor(exim + 2);
+        expo2->SetLineStyle(2);
         expo2->SetParameter(0, dMaxCount / 1.3);
         expo2->SetParameter(1, 1.0);
         expo2->SetParameter(2, dMaxCount / 3.0);
@@ -511,7 +512,6 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
 
   hPlotEmpty->GetXaxis()->SetTitle("Initial Excitation Energy #bar{E}_{x,I} (MeV)");
   hPlotEmpty->GetYaxis()->SetTitle("Avg. Feeding Time #bar{t} (fs)");
-  hPlotEmpty->GetYaxis()->SetRangeUser(1e-1, 1e9);
   hPlotEmpty->Draw();
   cFeedMean->SetLogy();
 
@@ -520,6 +520,8 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   const int nLvlCheck = sizeof(anLvlCheck) / sizeof(int);
   // plot last real; declared earlier
 
+  double dFeedMeanMin = 1e9;
+  double dFeedMeanMax = 0;
   for (int chk = 0; chk < nLvlCheck; chk++) {
     int lvl = anLvlCheck[chk];
     agrLvlFeed[real0][lvl]->SetLineColor(chk + 1);
@@ -533,7 +535,12 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
     } else {
       legFeed->AddEntry(agrLvlFeed[real0][lvl], Form("%2.3f MeV %1.1f-", adDisEne[lvl], adDisSp[lvl]), "PE");
     } // parity
+    if (agrLvlFeed[real0][lvl]->GetHistogram()->GetMinimum() < dFeedMeanMin)
+      dFeedMeanMin = agrLvlFeed[real0][lvl]->GetHistogram()->GetMinimum();
+    if (agrLvlFeed[real0][lvl]->GetHistogram()->GetMaximum() > dFeedMeanMax)
+      dFeedMeanMax = agrLvlFeed[real0][lvl]->GetHistogram()->GetMaximum();
   } // lvl
+  hPlotEmpty->GetYaxis()->SetRangeUser(dFeedMeanMin * 0.5, dFeedMeanMax * 1.5);
   legFeed->Draw("Same");
 
   TCanvas *cExFeed = new TCanvas("cExFeed", "cExFeed", 800, 650);
