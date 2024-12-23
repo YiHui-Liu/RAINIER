@@ -1854,13 +1854,15 @@ void RAINIER(int g_nRunNum = 1) {
                                          Form("Population of Levels: %2.1f MeV, Real%d", dExIMean, real),
                                          2 * g_dPlotSpMax, -g_dPlotSpMax, g_dPlotSpMax, g_nEgBin, 0, g_dExIMax);
 
-      double dFeedTimeMax =
-          (270 - 20) / (5.5 - 11.0) * dExIMean + 520; // fs
-                                                      // harder to pick out multistep decay at short times and low ExI
+      double dFeedTimeMax = 1e9; // fs, harder to pick out multistep decay at short times and low ExI
       int nFeedTimeBin = 300;
+      double adFeedTimeStep = (TMath::Log10(dFeedTimeMax) - TMath::Log10(1e-1)) / nFeedTimeBin;
+      double adFeedTimeBins[nFeedTimeBin + 1];
+      for (int ie = 0; ie < (nFeedTimeBin + 1); ie++)
+        adFeedTimeBins[ie] = 1e-1 * TMath::Power(10., ie * adFeedTimeStep);
       g_ah2FeedTime[real][exim] =
           new TH2D(Form("h2ExI%dFeedTime_%d", exim, real), Form("Feeding Levels: %2.1f MeV, Real%d", dExIMean, real),
-                   g_nDisLvlMax, 0, g_nDisLvlMax, nFeedTimeBin, 0.0, dFeedTimeMax);
+                   g_nDisLvlMax, 0, g_nDisLvlMax, nFeedTimeBin, adFeedTimeBins);
 
       int nBinEx = 300, nBinEg = 300; // mama, rhosigchi, etc. purposes
       g_ah2ExEg[real][exim] =
