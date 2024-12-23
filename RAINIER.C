@@ -2244,7 +2244,7 @@ void RAINIER(int g_nRunNum = 1) {
   }
 
   TTimeStamp tEnd;
-  double dElapsedSec = double(tEnd.GetSec() - tBegin.GetSec());
+  double dElapsedSec = double(tEnd.GetSec() - tBegin.GetSec()) + double(tEnd.GetNanoSec() - tBegin.GetNanoSec()) / 1e9;
   cout << "Time elapsed during RAINIER execution: " << dElapsedSec << " sec" << endl;
   gROOT->ProcessLine(".L Analyze.C");   // load the separate analysis file
   gROOT->ProcessLine("RetrievePars()"); // linking files is always wonky in ROOT
