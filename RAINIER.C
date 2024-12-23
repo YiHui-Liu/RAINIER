@@ -274,7 +274,7 @@ const double g_dSpSigE2 = 4e-11; // MeV^-5
 #endif // bGSF_Table
 
 ////////////////////// Internal Conversion Coefficient, ICC, Settings //////////
-// #define bUseICC // ICC = 0.0 otherwise
+#define bUseICC // ICC = 0.0 otherwise
 //  if issues, turn ICC off and get your briccs to work outside RAINIER first
 const char g_sBrIccModel[] = "BrIccFO";     // Conversion data table
 const int g_nBinICC = 100;                  // Energy bins of BrIcc - more takes lot init time
@@ -1773,12 +1773,17 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
 TF1 *fnLDa, *fnSpCut, *fnGSFE1, *fnGSFM1, *fnGSFE2, *fnGSFTot;
 TH1D *g_hJIntrins;
 void InitFn() {
-  // fnLDa = new TF1("fnLDa", "GetLDa(x)", 0, 10);
-  // fnSpCut = new TF1("fnSpCut", "sqrt(GetSpinCut2(x))", 0, 10);
-  // fnGSFE1 = new TF1("fnGSFE1", "GetStrE1([0],x)/x**3", 0, 18);
-  // fnGSFM1 = new TF1("fnGSFM1", "GetStrM1(x)/x**3", 0, 18);
-  // fnGSFE2 = new TF1("fnGSFE2", "GetStrE2(x)/x**5", 0, 18);
-  // fnGSFTot = new TF1("fnGSFTot", "GetStrE1([0],x)/x**3 + GetStrM1(x)/x**3 + GetStrE2(x)/x**5", 0, 18);
+  fnLDa = new TF1("fnLDa", [](double *x, double *p) { return GetLDa(x[0]); }, 0, 10);
+  fnSpCut = new TF1("fnSpCut", [](double *x, double *p) { return sqrt(GetSpinCut2(x[0])); }, 0, 10);
+  fnGSFE1 = new TF1("fnGSFE1", [](double *x, double *p) { return GetStrE1(5, x[0]) / pow(x[0], 3); }, 0, 18);
+  fnGSFM1 = new TF1("fnGSFM1", [](double *x, double *p) { return GetStrM1(x[0]) / pow(x[0], 3); }, 0, 18);
+  fnGSFE2 = new TF1("fnGSFE2", [](double *x, double *p) { return GetStrE2(x[0]) / pow(x[0], 5); }, 0, 18);
+  fnGSFTot = new TF1(
+      "fnGSFTot",
+      [](double *x, double *p) {
+        return GetStrE1(5, x[0]) / pow(x[0], 3) + GetStrM1(x[0]) / pow(x[0], 3) + GetStrE2(x[0]) / pow(x[0], 5);
+      },
+      0, 18);
 
   double dEx = 0.5 * g_dExIMax; // spincut is slowly varying fn of E
   g_hJIntrins = new TH1D("hJIntrins", "Underlying J Dist", int(g_dPlotSpMax), 0.0, int(g_dPlotSpMax));
