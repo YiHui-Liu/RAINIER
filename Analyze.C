@@ -15,6 +15,7 @@
 #include "TLegend.h"
 #include "TLine.h"
 #include "TMath.h"
+#include "TROOT.h"
 #include "TString.h"
 #include "TStyle.h"
 
@@ -68,7 +69,7 @@ template <class T> void GetArray(string sFile, string sArray, T *aArray, int nLe
 
 /////////////////////////////// Retrieve Parameters ////////////////////////////
 const int nRunNum = 1; // which save file to pull from
-double dECrit, dPlotSpMax, dExIRes, dExIMax, dExIResp0, dExIResp1;
+double dECrit, dPlotSpMax, dExIResConst, dExIMax, dExIResp0, dExIResp1;
 int nReal, nExIMean, nEvent, nPopLvl, nDRTSC, nDisLvlMax;
 bool bIsEvenA;
 int *anPopLvl, *anDRTSC;
@@ -80,8 +81,8 @@ void RetrievePars() {
   TString sParFile = TString::Format("Param%04d.dat", nRunNum);
   string sParam = sParFile.Data();
   dECrit = GetPar(sParam, "g_dECrit");
-  dExIRes = GetPar(sParam, "g_dExIRes");
-  if (dExIRes == -1) {
+  dExIResConst = GetPar(sParam, "g_dExIRes");
+  if (dExIResConst == -1) {
     dExIResp0 = GetPar(sParam, "g_dExIResp0");
     dExIResp1 = GetPar(sParam, "g_dExIResp1");
   }
@@ -127,9 +128,9 @@ void Analyze() {                      // program initialization
 
 ////////////////////////// Detector ////////////////////////////////////////////
 double AnalyzeGetExIRes(double dEx) {
-  if (dExIRes == -1)
+  if (dExIResConst == -1)
     return dExIResp0 * pow(dEx * 1000, dExIResp1) / 2.355 / 1000;
-  return dExIRes;
+  return dExIResConst;
 } // AnalyzeGetExIRes
 
 //////////////////////////// Gamma Spectrum ////////////////////////////////////
@@ -362,7 +363,7 @@ void AnalyzeDRTSC() { // Primary to select levels
         // dont have a convienent scale; dont know tot width or
         // cross sec for abs mag; diff Ei have diff vals
         // going to normalize later anyways
-        dExIRes = AnalyzeGetExIRes(dEg);
+        double dExIRes = AnalyzeGetExIRes(dEg);
         agrDRTSC[nIndex].SetPoint(prim2, dEg, dGSF);
         agrDRTSC[nIndex].SetPointError(prim2, dExIRes, sqrt(nDRTSCInt) / pow(dEg, 3));
         // need to put error on dEg spread and density
@@ -486,7 +487,7 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
                                        pow(a0 * a1 + a2 * a3, 4));
 
         // T_1/2 = log(2) * lifetime
-        dExIRes = AnalyzeGetExIRes(dExIMean);
+        double dExIRes = AnalyzeGetExIRes(dExIMean);
         agrLvlFeed[real][lvl]->SetPoint(exim, dExIMean, dFeedTimeMean);
         agrLvlFeed[real][lvl]->SetPointError(exim, dExIRes, dFeedTimeMeanErr);
       } // initial excitation mean

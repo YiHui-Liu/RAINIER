@@ -514,8 +514,9 @@ void ReadPopFile() {
 double GetExIRes(double dEx) {
 #ifdef bExIResConst
   return dExIRes / 2.355;
-#endif
+#else
   return g_dExIResp0 * pow(dEx * 1000, g_dExIResp1) / 2.355 / 1000;
+#endif
 } // GetExIRes
 
 ////////////////////////// Level Density ///////////////////////////////////////
