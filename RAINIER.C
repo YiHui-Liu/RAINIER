@@ -1519,6 +1519,9 @@ bool TakeStep(int &nConEx, int &nSpb, int &nPar, int &nDisEx, int &nLvlInBin, in
   } ///// in constructed scheme /////
   else { /////// in discrete ///////
     nToConEx = -1;
+    if (!g_anDisGam[nDisEx]) { ///// no gamma, pure icc /////
+      return false;
+    }
     double dRanBR = ranEv.Uniform(1.0); // should all add up to 1
     double dBRCumulative = 0.0;
     bool bFoundLvl = false;
