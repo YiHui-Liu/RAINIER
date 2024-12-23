@@ -68,7 +68,7 @@ template <class T> void GetArray(string sFile, string sArray, T *aArray, int nLe
 
 /////////////////////////////// Retrieve Parameters ////////////////////////////
 const int nRunNum = 1; // which save file to pull from
-double dECrit, dPlotSpMax, dExISpread, dExIMax;
+double dECrit, dPlotSpMax, dExIRes, dExIMax, dExIResp0, dExIResp1;
 int nReal, nExIMean, nEvent, nPopLvl, nDRTSC, nDisLvlMax;
 bool bIsEvenA;
 int *anPopLvl, *anDRTSC;
@@ -80,7 +80,11 @@ void RetrievePars() {
   TString sParFile = TString::Format("Param%04d.dat", nRunNum);
   string sParam = sParFile.Data();
   dECrit = GetPar(sParam, "g_dECrit");
-  dExISpread = GetPar(sParam, "g_dExISpread");
+  dExIRes = GetPar(sParam, "g_dExIRes");
+  if (dExIRes == -1) {
+    dExIResp0 = GetPar(sParam, "g_dExIResp0");
+    dExIResp1 = GetPar(sParam, "g_dExIResp1");
+  }
   dExIMax = GetPar(sParam, "g_dExIMax");
   dPlotSpMax = GetPar(sParam, "g_dPlotSpMax");
   nReal = GetPar(sParam, "g_nReal");
@@ -116,9 +120,17 @@ void RetrievePars() {
   fSaveFile = new TFile(sSaveFile, "read");
 } // RetrievePars
 
-void Analyze() { // program initialization
+void Analyze() {                      // program initialization
+  gROOT->ProcessLine(".L RAINIER.C"); // load the separate analysis file
   RetrievePars();
 }
+
+////////////////////////// Detector ////////////////////////////////////////////
+double AnalyzeGetExIRes(double dEx) {
+  if (dExIRes == -1)
+    return dExIResp0 * pow(dEx * 1000, dExIResp1) / 2.355 / 1000;
+  return dExIRes;
+} // AnalyzeGetExIRes
 
 //////////////////////////// Gamma Spectrum ////////////////////////////////////
 void AnalyzeGamma(int exim0 = nExIMean - 1, int real0 = nReal - 1, bool bDiscrete = false) {
@@ -350,8 +362,9 @@ void AnalyzeDRTSC() { // Primary to select levels
         // dont have a convienent scale; dont know tot width or
         // cross sec for abs mag; diff Ei have diff vals
         // going to normalize later anyways
+        dExIRes = AnalyzeGetExIRes(dEg);
         agrDRTSC[nIndex].SetPoint(prim2, dEg, dGSF);
-        agrDRTSC[nIndex].SetPointError(prim2, dExISpread, sqrt(nDRTSCInt) / pow(dEg, 3));
+        agrDRTSC[nIndex].SetPointError(prim2, dExIRes, sqrt(nDRTSCInt) / pow(dEg, 3));
         // need to put error on dEg spread and density
       } // prim2
     } // exim
@@ -473,8 +486,9 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
                                        pow(a0 * a1 + a2 * a3, 4));
 
         // T_1/2 = log(2) * lifetime
+        dExIRes = AnalyzeGetExIRes(dExIMean);
         agrLvlFeed[real][lvl]->SetPoint(exim, dExIMean, dFeedTimeMean);
-        agrLvlFeed[real][lvl]->SetPointError(exim, dExISpread, dFeedTimeMeanErr);
+        agrLvlFeed[real][lvl]->SetPointError(exim, dExIRes, dFeedTimeMeanErr);
       } // initial excitation mean
     } // lvl
   } // realization
@@ -487,7 +501,7 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   hPlotEmpty->GetXaxis()->SetTitleFont(132);
   hPlotEmpty->GetXaxis()->SetTitleOffset(0.8);
   hPlotEmpty->GetXaxis()->CenterTitle();
-  hPlotEmpty->GetXaxis()->SetRangeUser(3.0, 10.5);
+  hPlotEmpty->GetXaxis()->SetRangeUser(0, 10.5);
 
   hPlotEmpty->GetYaxis()->SetTitleSize(0.055);
   hPlotEmpty->GetYaxis()->SetTitleFont(132);
@@ -496,8 +510,9 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
 
   hPlotEmpty->GetXaxis()->SetTitle("Initial Excitation Energy #bar{E}_{x,I} (MeV)");
   hPlotEmpty->GetYaxis()->SetTitle("Avg. Feeding Time #bar{t} (fs)");
-  hPlotEmpty->GetYaxis()->SetRangeUser(0.0, 77.0);
+  hPlotEmpty->GetYaxis()->SetRangeUser(1e-1, 1e9);
   hPlotEmpty->Draw();
+  cFeedMean->SetLogy();
 
   TLegend *legFeed = new TLegend(0.9, 0.7, 0.7, 0.9, "Fed Lvls");
   int anLvlCheck[] = {3, 8, 10}; // only measure these feed times experimentally

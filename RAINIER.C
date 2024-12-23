@@ -28,6 +28,15 @@ const int g_nEvent = 1e4;                         // number of events per realiz
 const int g_nEbins = 100;                         // number of progess bins
 const int g_nEvUpdate = int(g_nEvent / g_nEbins); // print progress to screen at this interval
 
+////////////////////// Detector Settings ///////////////////////////////////////
+// #define bExIResConst // constant energy resolution
+#ifdef bExIResConst
+const double dExIRes = 0.2; // FWHM (energy resolution) in MeV, std dev sigma = FWHM / 2.355
+#else                       // p[0] * pow(x, p[1])
+const double g_dExIResp0 = 2.8;
+const double g_dExIResp1 = 0.55;
+#endif
+
 ////////////////////// Parallel Settings ///////////////////////////////////////
 // should handle itself, email me if you get it to work on Mac or PC
 #ifdef __CLING__
@@ -92,8 +101,6 @@ const double g_adBRI[] = {0,      0,     0,      0,      0.014,  0.58,   0.0094,
 const double g_dExIMax = 8.0; // MeV; constructed lvl scheme built up to this
 // dont exceed with init excitations - gaus might sample higher than expected
 const double g_adExIMean[] = {3.0, 4.0, 5.0, 6.0, 7.0}; // MeV
-const double g_dExISpread = 0.2 / 2.355;                // MeV; std dev sigma = FWHM / 2.355
-const double g_dExRes = 0.2;                            // excitation resolution on g_ah2ExEg for analysis
 #define bJIUnderlying                                   // initial population = intrinsic J dist of the nucleus
 // #define bJIPoisson
 // #define bJIGaus
@@ -319,17 +326,12 @@ const double g_dKX1 = 8.673592583E-08; // mb^-1 MeV^-2;  = 1/(3*(pi*hbar*c)^2)
 const int g_nStateI = sizeof(g_adExI) / sizeof(double);
 const double g_dExIMax = g_adExI[g_nStateI - 1] + 0.25; // build above last val
 const double g_adExIMean[] = {0.0};                     // unused in select
-const double g_dExISpread = 0.0;                        // unused in select
-const double g_dExRes = 0.0;                            // unused in select
 #endif
 #ifdef bExSingle
 const double g_adExIMean[] = {0.0}; // unused in single
-const double g_dExISpread = 0.0;    // unused in single
-const double g_dExRes = 0.0;        // unused in single
 #endif
 #ifdef bExFullRxn
 const double g_adExIMean[] = {0.0}; // unsed in full rxn
-const double g_dExISpread = 0.0;    // unsed in full rxn
 #endif
 const int g_nExIMean = sizeof(g_adExIMean) / sizeof(double); // self adjusting
 #ifndef bGSF_Table
@@ -507,6 +509,14 @@ void ReadPopFile() {
 
 } // ReadPopFile
 #endif // talys input for Oslo Analysis
+
+////////////////////////// Detector ////////////////////////////////////////////
+double GetExIRes(double dEx) {
+#ifdef bExIResConst
+  return dExIRes / 2.355;
+#endif
+  return g_dExIResp0 * pow(dEx * 1000, g_dExIResp1) / 2.355 / 1000;
+} // GetExIRes
 
 ////////////////////////// Level Density ///////////////////////////////////////
 double GetEff(double dEx) {
@@ -1556,7 +1566,7 @@ bool TakeStep(int &nConEx, int &nSpb, int &nPar, int &nDisEx, int &nLvlInBin, in
 
 ///////////////////////// Initial Excitation ///////////////////////////////////
 void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRandom2 &ranEv, double dExIMean,
-            double dExISpread) {
+            double dExIRes) {
 // GetExI will change above variables marked with &
 
 ///// DICEBOX-like initial state /////
@@ -1645,7 +1655,7 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
     bool bFoundLvl = false;
     while (!bFoundLvl && nAttempt < nMaxAttempt) { // dont pop not existent lvls
       nAttempt++;
-      nExI = round((dExIMean - g_dECrit + ranEv.Gaus(0.0, dExISpread)) / g_dConESpac);
+      nExI = round((dExIMean - g_dECrit + ranEv.Gaus(0.0, dExIRes)) / g_dConESpac);
       if (nExI > g_nConEBin)
         cerr << "err: ExI above constructed max" << endl;
       if (nExI < 0)
@@ -1830,9 +1840,9 @@ void RAINIER(int g_nRunNum = 1) {
     ///////// Initial Excitation loop /////////
     for (int exim = 0; exim < g_nExIMean; exim++) {
       double dExIMean = g_adExIMean[exim];
-      double dExISpread = g_dExISpread; // could make resolution dep on ExIMean
+      double dExIRes = GetExIRes(dExIMean); // could make resolution dep on ExIMean
 #ifdef bExSpread
-      cout << "  Initial Excitation Mean: " << dExIMean << " +- " << dExISpread << " MeV" << endl;
+      cout << "  Initial Excitation Mean: " << dExIMean << " +- " << dExIRes << " MeV" << endl;
 #endif
 
       ///// Initialize Histograms /////
@@ -1951,7 +1961,7 @@ void RAINIER(int g_nRunNum = 1) {
           /////// initial state formation ///////
           int nExI, nSpbI, nParI, nDisEx, nLvlInBinI;           // Initial state variables
           GetExI(nExI, nSpbI, nParI, nDisEx, nLvlInBinI, ranEv, // init vars
-                 dExIMean, dExISpread);                         // with these inputs from experiment
+                 dExIMean, dExIRes);                            // with these inputs from experiment
           int nConEx = nExI, nSpb = nSpbI, nPar = nParI,
               nLvlInBin = nLvlInBinI; // set initial to working state variables
           g_ahJPop[real][exim]->Fill(nSpbI);
@@ -2060,9 +2070,8 @@ void RAINIER(int g_nRunNum = 1) {
               if (dProbEle > dRanICC)
                 bIsElectron = true;
 
-              if (!bIsElectron) {         // emitted gamma
-                double dExRes = g_dExRes; // ~ particle resolution
-                double dExDet = dExI + ranEv.Gaus(0.0, dExRes);
+              if (!bIsElectron) {                                        // emitted gamma
+                double dExDet = dExI + ranEv.Gaus(0.0, GetExIRes(dExI)); // particle resolution
                 g_ahGSpec[real][exim]->Fill(dEg);
                 g_ah2ExEg[real][exim]->Fill(dEg * 1000, dExDet * 1000);
                 if (nStep == 1)
@@ -2181,6 +2190,7 @@ void RAINIER(int g_nRunNum = 1) {
 
   cout << "Writing Histograms" << endl;
   fSaveFile->Write(); // only saves histograms, not the parameters, nor TF1s
+
 ////// save parameters /////
 #define SAVE_PAR(stream, variable) (stream) << #variable " " << (variable) << endl
 #define SAVE_ARR(stream, variable, size)                                                                               \
@@ -2193,7 +2203,12 @@ void RAINIER(int g_nRunNum = 1) {
   ofstream ofParam;
   ofParam.open(sParFile.Data());
   SAVE_PAR(ofParam, g_dECrit);
-  SAVE_PAR(ofParam, g_dExISpread);
+#ifdef bExIResConst
+  SAVE_PAR(ofParam, dExIRes);
+#else
+  SAVE_PAR(ofParam, g_dExIResp0);
+  SAVE_PAR(ofParam, g_dExIResp1);
+#endif
   SAVE_PAR(ofParam, g_dExIMax);
   SAVE_PAR(ofParam, g_dPlotSpMax);
   SAVE_PAR(ofParam, g_dConESpac);
