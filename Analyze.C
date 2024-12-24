@@ -222,6 +222,14 @@ void AnalyzePop(int exim0 = nExIMean - 1, int real0 = nReal - 1, bool bDiscrete 
         fnTmp->SetLineColor(kGray);
         fnTmp->Draw("Same");
       }
+
+    TCanvas *cEx = new TCanvas("cEx", "cEx", 800, 650);
+    cEx->SetLogy();
+    TH1D *hDisEx = ((TH2D *)fSaveFile->Get(Form("h2ExI%dPopI_%d", exim0, real0)))->ProjectionY();
+    hDisEx->GetXaxis()->SetRangeUser(dECrit, dExIMax);
+    hDisEx->GetXaxis()->SetTitle("E_{x,I} (MeV)");
+    hDisEx->GetYaxis()->SetTitle("Counts");
+    hDisEx->Draw();
   } else {
     cout << "Non existent ExIMean or Realization" << endl;
   }
