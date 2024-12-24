@@ -411,7 +411,7 @@ void AnalyzeDRTSC() { // Primary to select levels
       agrDRTSC[nIndex].SetLineWidth(2);
       agrDRTSC[nIndex].Draw("same LPE");
       double dExI = adExIMean[exim];
-      legPrim->AddEntry(&agrDRTSC[nIndex], Form("E_{x,I} = %2.0f MeV", dExI), "P");
+      legPrim->AddEntry(&agrDRTSC[nIndex], Form("E_{x,I} = %6.3f MeV", dExI), "P");
     } // exim
   } // real
   fE1M1E2->SetLineColor(kBlack);
