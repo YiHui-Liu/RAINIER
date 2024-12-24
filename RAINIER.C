@@ -111,6 +111,7 @@ const double g_dJIMean = 3.5;
 const double g_dJIMean = 3.5;
 const double g_dJIWid = 0.5;
 #endif
+// #define bExSpreadGaus // spread function of the initial excitation, gaussian or uniform
 #endif
 
 #ifdef bExFullRxn                      // from a TALYS output file if available
@@ -1657,9 +1658,20 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
     int nAttempt = 0;
     int nMaxAttempt = 1000;
     bool bFoundLvl = false;
+#ifndef bExSpreadGaus
+    double dExIFWHM = dExIRes * 2.355 / 2;
+    double dExIFWHM1 = TMath::Min(dExIFWHM, dExIMean - g_dECrit);
+    double dExIFWHM2 = TMath::Min(dExIFWHM, g_dExIMax - dExIMean);
+#endif
     while (!bFoundLvl && nAttempt < nMaxAttempt) { // dont pop not existent lvls
       nAttempt++;
+#ifdef bExSpreadGaus
       nExI = round((dExIMean - g_dECrit + ranEv.Gaus(0.0, dExIRes)) / g_dConESpac);
+#else
+      nExI = round((dExIMean - g_dECrit + ranEv.Uniform(-dExIFWHM1, dExIFWHM2)) / g_dConESpac);
+      if (nExI == g_nConEBin)
+        nExI -= 1;
+#endif
       if (nExI > g_nConEBin)
         cerr << "err: ExI above constructed max" << endl;
       if (nExI < 0)
