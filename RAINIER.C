@@ -2170,14 +2170,14 @@ void RAINIER(int g_nRunNum = 1) {
       g_ah2FeedTime[real][exim]->GetYaxis()->SetTitle("Feeding Time (fs)");
       g_ah2ExEg[real][exim]->GetXaxis()->SetTitle("E_{#gamma} (MeV)");
       g_ah2ExEg[real][exim]->GetYaxis()->SetTitle("E_{x,I} (MeV)");
+      g_ah21Gen[real][exim]->GetXaxis()->SetTitle("E_{#gamma} (MeV)");
+      g_ah21Gen[real][exim]->GetYaxis()->SetTitle("E_{x,I} (MeV)");
       g_ah2PopI[real][exim]->GetXaxis()->SetTitle("J_{I} (#hbar)");
       g_ah2PopI[real][exim]->GetYaxis()->SetTitle("E_{x,I} (MeV)");
 
       // TH1D:
       TH1D *g_ah1Temp[] = {
-          g_ahGSpec[real][exim],
-          // g_ahTSC   [real][exim],
-          g_ahDisPop[real][exim], g_ahJPop[real][exim],
+          g_ahGSpec[real][exim], g_ahDisPop[real][exim], g_ahJPop[real][exim],
           g_ahDRTSC[real][exim][0] // 1st determines axes in plot
       };
       int nh1Temp = 4;
@@ -2186,7 +2186,6 @@ void RAINIER(int g_nRunNum = 1) {
         g_ah1Temp[h]->GetXaxis()->SetTitleFont(132);
         g_ah1Temp[h]->GetXaxis()->SetTitleOffset(0.8);
         g_ah1Temp[h]->GetXaxis()->CenterTitle();
-        g_ah1Temp[h]->GetXaxis()->SetTitle("E_{#gamma} (MeV)");
 
         g_ah1Temp[h]->GetYaxis()->SetTitleSize(0.055);
         g_ah1Temp[h]->GetYaxis()->SetTitleFont(132);
@@ -2194,6 +2193,25 @@ void RAINIER(int g_nRunNum = 1) {
         g_ah1Temp[h]->GetYaxis()->CenterTitle();
         g_ah1Temp[h]->GetYaxis()->SetTitle("Counts");
       } // hists
+      g_ahGSpec[real][exim]->GetXaxis()->SetTitle("E_{#gamma} (MeV)");
+      g_ahDisPop[real][exim]->GetXaxis()->SetTitle("Discrete Level Number");
+      g_ahJPop[real][exim]->GetXaxis()->SetTitle("J_{I} (#hbar)");
+      g_ahDRTSC[real][exim][0]->GetXaxis()->SetTitle("E_{#gamma} (MeV)");
+
+      // g_adTSC
+      for (int h = 0; h < g_nDisLvlMax; h++) {
+        g_ahTSC[real][exim][h]->GetXaxis()->SetTitleSize(0.055);
+        g_ahTSC[real][exim][h]->GetXaxis()->SetTitleFont(132);
+        g_ahTSC[real][exim][h]->GetXaxis()->SetTitleOffset(0.8);
+        g_ahTSC[real][exim][h]->GetXaxis()->CenterTitle();
+        g_ahTSC[real][exim][h]->GetXaxis()->SetTitle("E_{#gamma} (MeV)");
+
+        g_ahTSC[real][exim][h]->GetYaxis()->SetTitleSize(0.055);
+        g_ahTSC[real][exim][h]->GetYaxis()->SetTitleFont(132);
+        g_ahTSC[real][exim][h]->GetYaxis()->SetTitleOffset(0.85);
+        g_ahTSC[real][exim][h]->GetYaxis()->CenterTitle();
+        g_ahTSC[real][exim][h]->GetYaxis()->SetTitle("Counts");
+      }
 
     } // Excitation mean
   } // realization
