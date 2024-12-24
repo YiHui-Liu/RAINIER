@@ -7,7 +7,13 @@ Input*.dat
 Param*.dat
 Run*.root
 Nd144Pop.dat
+.gdb_history
+*.log
 
 # Binary Files
 RAINIER
 briccs
+*.o
+
+# Tools
+*.py
