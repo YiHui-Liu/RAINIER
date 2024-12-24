@@ -761,10 +761,10 @@ void BuildConstructed(int nReal) {
       double adExpCumulCon[g_nConEBin] = {0.0};
       for (int ex = 0; ex < g_nConEBin; ex++) {
         double dEx = g_adConExCen[ex];
-        if (ex == 0)
-          adExpCumulCon[ex] = GetDensity(dEx, dSp, par) * g_dConESpac;
-        else // ex != 0
-          adExpCumulCon[ex] = GetDensity(dEx, dSp, par) * g_dConESpac + adExpCumulCon[ex - 1];
+        adExpCumulCon[ex] = GetDensity(dEx, dSp, par) * g_dConESpac;
+      }
+      for (int ex = 1; ex < g_nConEBin; ex++) {
+        adExpCumulCon[ex] += adExpCumulCon[ex - 1];
       } // ex
 
       ///// Level assignment /////
