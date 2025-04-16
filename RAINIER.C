@@ -62,6 +62,8 @@ const int g_anPopLvl[] = {13, 8, 14, 10, 6, 11}; // 144Nd
 ///// DRTSC Analysis
 // const int g_anDRTSC[] = {1,3,5,8,12,13,15}; // 56Fe
 const int g_anDRTSC[] = {1, 4, 6, 15}; // 144Nd
+const int g_nDRTSCSpin = 2;
+const int g_nDRTSCParity = 1;
 const int g_nEgBin = 500;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1914,9 +1916,10 @@ void RAINIER(int g_nRunNum = 1) {
       for (int prim2 = 0; prim2 < g_nDRTSC; prim2++) {
         // dont want to make into th2d and do projections later
         // like I did with feedAnalysis, was too time coding time costly
-        g_ahDRTSC[real][exim][prim2] =
-            new TH1D(Form("hExI%dDRTSC_%d_%d", exim, prim2, real),
-                     Form("Primary 2^{+}: %2.1f MeV, Real%d", dExIMean, real), g_nEgBin, 0.0, dEgMax);
+        g_ahDRTSC[real][exim][prim2] = new TH1D(
+            Form("hExI%dDRTSC_%d_%d", exim, prim2, real),
+            Form("Primary %d^{%s}: %2.1f MeV, Real%d", g_nDRTSCSpin, g_nDRTSCParity > 0 ? "+" : "-", dExIMean, real),
+            g_nEgBin, 0.0, dEgMax);
       } // prim2
 
       g_ahGSpec[real][exim] =
@@ -2110,9 +2113,9 @@ void RAINIER(int g_nRunNum = 1) {
                 // DRTSC spectra
                 if (nStep == 1 && nDisEx < g_nDisLvlMax) { // 1st step discrete
                   for (int prim2 = 0; prim2 < g_nDRTSC; prim2++) {
-                    if (g_anDRTSC[prim2] == nDisEx) {          // primary is known 2+
+                    if (g_anDRTSC[prim2] == nDisEx) { // 1 step to a primary energy level with known spin and parity
                       g_ahDRTSC[real][exim][prim2]->Fill(dEg); // neglect ICC
-                    } // primary is known 2+
+                    }
                   } // check if primary
                 } // 1st step to discrete
               } else { // was electron
