@@ -24,7 +24,7 @@ const int g_nAMass = 142; // proton + neutron number
 
 ////////////////////// Run Settings ////////////////////////////////////////////
 const int g_nReal = 1;                            // number of realizations of nuclear level scheme
-const int g_nEvent = 1e4;                         // number of events per realization (and ExI in bExSpread)
+const int g_nEvent = 1e5;                         // number of events per realization (and ExI in bExSpread)
 const int g_nEbins = 100;                         // number of progess bins
 const int g_nEvUpdate = int(g_nEvent / g_nEbins); // print progress to screen at this interval
 
@@ -74,9 +74,9 @@ const int g_nDisLvlMax = 38; // only trust level scheme to here, sets ECrit
 
 ////////////////////// Excitation Settings /////////////////////////////////////
 // choose one, fill in corresponding params:
-#define bExSingle // single population input
+// #define bExSingle // single population input
 // #define bExSelect // like Beta decay
-// #define bExSpread  // ejectile detected input
+#define bExSpread // ejectile detected input
 // #define bExFullRxn // no ejectile detected input
 
 #ifdef bExSingle                // similar to (n,g)
@@ -298,11 +298,13 @@ const double g_dICCMax = 1.0;               // MeV; Uses last Ebin ICC value for
 #include "TRandom2.h"
 // 2=Tausworthe is faster and smaller than 3=Mersenne Twister (MT19937)
 // search and replace "TRandom2" to "TRandom3" to change PRNG
+#include "TCanvas.h"
 #include "TF1.h"
 #include "TFile.h"
 #include "TGraphErrors.h"
 #include "TH1D.h"
 #include "TH2D.h"
+#include "TLegend.h"
 #include "TMath.h"
 #include "TROOT.h"
 #include "TString.h"
@@ -1793,7 +1795,7 @@ void InitFn() {
   fnGSFTot = new TF1(
       "fnGSFTot",
       [](double *x, double *p) {
-        return GetStrE1(5, x[0]) / pow(x[0], 3) + GetStrM1(x[0]) / pow(x[0], 3) + GetStrE2(x[0]) / pow(x[0], 5);
+        return GetStrE1(5, x[0]) / pow(x[0], 3) + GetStrM1(x[0]) / pow(x[0], 3); // + GetStrE2(x[0]) / pow(x[0], 5);
       },
       0, 18);
 
@@ -2228,6 +2230,44 @@ void RAINIER(int g_nRunNum = 1) {
     } // Excitation mean
   } // realization
   InitFn();
+
+  // Save TF1s
+  fnLDa->Write();
+  fnSpCut->Write();
+  fnGSFE1->Write();
+  fnGSFM1->Write();
+  fnGSFE2->Write();
+  fnGSFTot->Write();
+
+  TCanvas *cGSF = new TCanvas("cGSF", "Gamma Strength Functions", 800, 600);
+  fnGSFE1->SetTitle("#gamma Strength Function");
+  fnGSFE1->SetLineColor(kRed);
+  fnGSFM1->SetLineColor(kBlue);
+  fnGSFE2->SetLineColor(kGreen);
+  fnGSFTot->SetLineColor(kBlack);
+  fnGSFE1->Draw();
+  fnGSFM1->Draw("same");
+  fnGSFE2->Draw("same");
+  fnGSFTot->Draw("same");
+  TLegend *legGSF = new TLegend(0.7, 0.7, 0.9, 0.9);
+  legGSF->AddEntry(fnGSFE1, "E1", "l");
+  legGSF->AddEntry(fnGSFM1, "M1", "l");
+  legGSF->AddEntry(fnGSFE2, "E2", "l");
+  legGSF->AddEntry(fnGSFTot, "E1 + M1", "l");
+  legGSF->Draw("same");
+  cGSF->SetLogy();
+  cGSF->Write();
+
+  TH2D *g_hEJP = new TH2D("hEJP", "EJP", g_nConEBin, g_dECrit, g_dExIMax, g_nConSpbMax, 0, g_nConSpbMax);
+  for (int ex = 0; ex < g_nConEBin; ex++) {
+    for (int spb = 0; spb < g_nConSpbMax; spb++) {
+      g_hEJP->Fill(g_dECrit + (ex + 0.5) * g_dConESpac, spb, g_anConLvl[EJP(ex, spb, 0)] + g_anConLvl[EJP(ex, spb, 1)]);
+    }
+  }
+  g_hEJP->GetXaxis()->SetTitle("E_{x} [MeV]");
+  g_hEJP->GetYaxis()->SetTitle("Spin [#hbar]");
+  PrintDisLvl();
+  PrintConLvl();
 
   cout << "Writing Histograms" << endl;
   fSaveFile->Write(); // only saves histograms, not the parameters, nor TF1s
