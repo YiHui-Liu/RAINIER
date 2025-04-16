@@ -24,7 +24,7 @@ const int g_nAMass = 142; // proton + neutron number
 
 ////////////////////// Run Settings ////////////////////////////////////////////
 const int g_nReal = 1;                            // number of realizations of nuclear level scheme
-const int g_nEvent = 1e5;                         // number of events per realization (and ExI in bExSpread)
+const int g_nEvent = 1e6;                         // number of events per realization (and ExI in bExSpread)
 const int g_nEbins = 100;                         // number of progess bins
 const int g_nEvUpdate = int(g_nEvent / g_nEbins); // print progress to screen at this interval
 
@@ -449,16 +449,16 @@ void PrintDisLvl() {
   cout << "****** Discrete ******" << endl;
   for (int lvl = 0; lvl < g_nDisLvlMax; lvl++) {
     // levels
-    cout << lvl << ":\t " << g_adDisEne[lvl] << "   " << g_adDisSp[lvl]
+    cout << setw(2) << lvl << ": " << setw(8) << g_adDisEne[lvl] << " " << setw(3) << g_adDisSp[lvl]
          << (g_anDisPar[lvl] == 1 ? "+" : "-") // careful dicebox flips parity
-         << " ";
+         << " " << setw(9);
     if (g_adDisT12[lvl] < 1e9)
       cout << g_adDisT12[lvl] << " fs" << endl;
     else
       cout << "N/A" << endl; // lifetime not measured
     // gammas
     for (int gam = 0; gam < g_anDisGam[lvl]; gam++) {
-      cout << "   " << g_anDisGamToLvl[lvl][gam] << " : " << g_adDisGamBR[lvl][gam] << endl;
+      cout << "    " << setw(2) << g_anDisGamToLvl[lvl][gam] << " : " << g_adDisGamBR[lvl][gam] << endl;
     } // gam
   } // lvl
 } // Print Discrete
@@ -1916,10 +1916,11 @@ void RAINIER(int g_nRunNum = 1) {
       for (int prim2 = 0; prim2 < g_nDRTSC; prim2++) {
         // dont want to make into th2d and do projections later
         // like I did with feedAnalysis, was too time coding time costly
-        g_ahDRTSC[real][exim][prim2] = new TH1D(
-            Form("hExI%dDRTSC_%d_%d", exim, prim2, real),
-            Form("Primary %d^{%s}: %2.1f MeV, Real%d", g_nDRTSCSpin, g_nDRTSCParity > 0 ? "+" : "-", dExIMean, real),
-            g_nEgBin, 0.0, dEgMax);
+        g_ahDRTSC[real][exim][prim2] =
+            new TH1D(Form("hExI%dDRTSC_%d_%d", exim, prim2, real),
+                     Form("Primary %d^{%s}: %5.3f -> %5.3f MeV, Real%d", g_nDRTSCSpin, g_nDRTSCParity > 0 ? "+" : "-",
+                          dExIMean, g_adDisEne[g_anDRTSC[prim2]], real),
+                     g_nEgBin, 0.0, dEgMax);
       } // prim2
 
       g_ahGSpec[real][exim] =

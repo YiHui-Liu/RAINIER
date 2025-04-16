@@ -134,23 +134,13 @@ double AnalyzeGetExIRes(double dEx) {
 } // AnalyzeGetExIRes
 
 //////////////////////////// Gamma Spectrum ////////////////////////////////////
-void AnalyzeGamma(int exim0 = nExIMean - 1, int real0 = nReal - 1, bool bDiscrete = false) {
+void AnalyzeGamma(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   if ((exim0 < nExIMean) && (real0 < nReal)) {
     TCanvas *cGSpec = new TCanvas("cGSpec", "cGSpec", 800, 650);
     cGSpec->SetLogy();
 
     TH1D *hGSpec = (TH1D *)fSaveFile->Get(Form("hExI%dGSpec_%d", exim0, real0));
-    hGSpec->Draw("colz");
-
-    if (bDiscrete) {
-      double dGSpecMax = hGSpec->GetMaximum();
-      for (size_t i = 0; i < nDisLvlMax; i++) {
-        TLine *lnTmp = new TLine(adDisEne[i], 0, adDisEne[i], dGSpecMax);
-        lnTmp->SetLineStyle(2);
-        lnTmp->SetLineColor(kGray);
-        lnTmp->Draw("Same");
-      }
-    }
+    hGSpec->Draw();
   } else {
     cout << "Non existent ExIMean or Realization" << endl;
   }
