@@ -333,7 +333,7 @@ const double g_dExIMax = g_adExI[g_nStateI - 1] + 0.25; // build above last val
 const double g_adExIMean[] = {0.0};                     // unused in select
 #endif
 #ifdef bExSingle
-const double g_adExIMean[] = {0.0}; // unused in single
+const double g_adExIMean[] = {g_dExIMax}; // unused in single
 #endif
 #ifdef bExFullRxn
 const double g_adExIMean[] = {0.0}; // unsed in full rxn
@@ -1872,7 +1872,7 @@ void RAINIER(int g_nRunNum = 1) {
 
       ///// Initialize Histograms /////
       g_ah2PopLvl[real][exim] = new TH2D(Form("h2ExI%dPopLvl_%d", exim, real),
-                                         Form("Population of Levels: %2.1f MeV, Real%d", dExIMean, real),
+                                         Form("Population of Levels: %2.3f MeV, Real%d", dExIMean, real),
                                          2 * g_dPlotSpMax, -g_dPlotSpMax, g_dPlotSpMax, g_nEgBin, 0, g_dExIMax);
 
       double dFeedTimeMax = 1e9; // fs, harder to pick out multistep decay at short times and low ExI
@@ -1882,20 +1882,20 @@ void RAINIER(int g_nRunNum = 1) {
       for (int ie = 0; ie < (nFeedTimeBin + 1); ie++)
         adFeedTimeBins[ie] = 1e-1 * TMath::Power(10., ie * adFeedTimeStep);
       g_ah2FeedTime[real][exim] =
-          new TH2D(Form("h2ExI%dFeedTime_%d", exim, real), Form("Feeding Levels: %2.1f MeV, Real%d", dExIMean, real),
+          new TH2D(Form("h2ExI%dFeedTime_%d", exim, real), Form("Feeding Levels: %2.3f MeV, Real%d", dExIMean, real),
                    g_nDisLvlMax, 0, g_nDisLvlMax, nFeedTimeBin, adFeedTimeBins);
 
       int nBinEx = 300, nBinEg = 300; // mama, rhosigchi, etc. purposes
       g_ah2ExEg[real][exim] =
-          new TH2D(Form("h2ExI%dEg_%d", exim, real), Form("E_{x,i} = %2.1f MeV vs. E_{#gamma}, Real%d", dExIMean, real),
+          new TH2D(Form("h2ExI%dEg_%d", exim, real), Form("E_{x,i} = %2.3f MeV vs. E_{#gamma}, Real%d", dExIMean, real),
                    nBinEg, 0, g_dExIMax * 1000, nBinEx, 0, g_dExIMax * 1000);
 
       g_ah21Gen[real][exim] = new TH2D(Form("h2ExI%d1Gen_%d", exim, real),
-                                       Form("E_{x,i} = %2.1f MeV 1st Generation, Real%d", dExIMean, real), nBinEg, 0,
+                                       Form("E_{x,i} = %2.3f MeV 1st Generation, Real%d", dExIMean, real), nBinEg, 0,
                                        g_dExIMax * 1000, nBinEx, 0, g_dExIMax * 1000);
 
       g_ah2PopI[real][exim] = new TH2D(Form("h2ExI%dPopI_%d", exim, real),
-                                       Form("E_{x,i} = %2.1f Events Populated in Real%d", dExIMean, real), g_dPlotSpMax,
+                                       Form("E_{x,i} = %2.3f Events Populated in Real%d", dExIMean, real), g_dPlotSpMax,
                                        0, g_dPlotSpMax, 900, 0, g_dExIMax);
 
       double dEgMax = g_dExIMax;
@@ -1906,11 +1906,11 @@ void RAINIER(int g_nRunNum = 1) {
         if (nDisPar == 0) // negative parity
           g_ahTSC[real][exim][dis] =
               new TH1D(Form("hExI%dto%dTSC_%d", exim, dis, real),
-                       Form("TSC to lvl %2.1f- %2.3f MeV, Real%d", dDisSp, dDisEne, real), g_nEgBin, 0.0, dEgMax);
+                       Form("TSC to lvl %2.3f- %2.3f MeV, Real%d", dDisSp, dDisEne, real), g_nEgBin, 0.0, dEgMax);
         else // positive parity
           g_ahTSC[real][exim][dis] =
               new TH1D(Form("hExI%dto%dTSC_%d", exim, dis, real),
-                       Form("TSC to lvl %2.1f+ %2.3f MeV, Real%d", dDisSp, dDisEne, real), g_nEgBin, 0.0, dEgMax);
+                       Form("TSC to lvl %2.3f+ %2.3f MeV, Real%d", dDisSp, dDisEne, real), g_nEgBin, 0.0, dEgMax);
       } // TSC to discrete lvl
 
       for (int prim2 = 0; prim2 < g_nDRTSC; prim2++) {
@@ -1924,19 +1924,19 @@ void RAINIER(int g_nRunNum = 1) {
       } // prim2
 
       g_ahGSpec[real][exim] =
-          new TH1D(Form("hExI%dGSpec_%d", exim, real), Form("Gamma Spectrum: %2.1f MeV, Real%d", dExIMean, real),
+          new TH1D(Form("hExI%dGSpec_%d", exim, real), Form("Gamma Spectrum: %2.3f MeV, Real%d", dExIMean, real),
                    g_nEgBin, 0.00, dEgMax);
 
       g_ahICSpec[real][exim] =
           new TH1D(Form("hExI%dICSpec_%d", exim, real),
-                   Form("Internal Conv Spectrum: %2.1f MeV, Real%d", dExIMean, real), g_nEgBin, 0.00, dEgMax);
+                   Form("Internal Conv Spectrum: %2.3f MeV, Real%d", dExIMean, real), g_nEgBin, 0.00, dEgMax);
 
       g_ahDisPop[real][exim] =
-          new TH1D(Form("hExI%dDisPop_%d", exim, real), Form("Discrete Populations: %2.1f MeV, Real%d", dExIMean, real),
+          new TH1D(Form("hExI%dDisPop_%d", exim, real), Form("Discrete Populations: %2.3f MeV, Real%d", dExIMean, real),
                    g_nDisLvlMax, 0, g_nDisLvlMax);
 
       g_ahJPop[real][exim] =
-          new TH1D(Form("hExI%dJPop_%d", exim, real), Form("Spin Initial Pop: %2.1f MeV, Real%d", dExIMean, real),
+          new TH1D(Form("hExI%dJPop_%d", exim, real), Form("Spin Initial Pop: %2.3f MeV, Real%d", dExIMean, real),
                    int(g_dPlotSpMax), 0, g_dPlotSpMax); // wont have this plot for half int J
 
 #ifdef bExSingle
