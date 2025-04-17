@@ -55,16 +55,23 @@ const double g_dExIResp1 = 0.55;
 #endif           // parallel
 
 ////////////////////// Analysis Settings ///////////////////////////////////////
-const double g_dPlotSpMax = 10.0;
+const int g_nEgBin = 500;
 ///// JPop Analysis /////
+const double g_dPlotSpMax = 10.0;
 // const int g_anPopLvl[] = {4,6,8,10,7,9};// low-ly populated lvls,0 = gs //56Fe
 const int g_anPopLvl[] = {13, 8, 14, 10, 6, 11}; // 144Nd
-///// DRTSC Analysis
+
+///// DRTSC Analysis /////
 // const int g_anDRTSC[] = {1,3,5,8,12,13,15}; // 56Fe
 const int g_anDRTSC[] = {1, 4, 6, 15}; // 144Nd
 const int g_nDRTSCSpin = 2;
 const int g_nDRTSCParity = 1;
-const int g_nEgBin = 500;
+
+// Feeding Time Analysis /////
+#define bFeedLinear
+// #define bFeedLog
+const int g_nFeedTimeBin = 300;
+const double g_dFeedTimeMax = 1e6; // fs, harder to pick out multistep decay at short times and low ExI
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////// Input Parameters ////////////////////////////////////////
@@ -1875,15 +1882,13 @@ void RAINIER(int g_nRunNum = 1) {
                                          Form("Population of Levels: %2.3f MeV, Real%d", dExIMean, real),
                                          2 * g_dPlotSpMax, -g_dPlotSpMax, g_dPlotSpMax, g_nEgBin, 0, g_dExIMax);
 
-      double dFeedTimeMax = 1e9; // fs, harder to pick out multistep decay at short times and low ExI
-      int nFeedTimeBin = 300;
-      double adFeedTimeStep = (TMath::Log10(dFeedTimeMax) - TMath::Log10(1e-1)) / nFeedTimeBin;
-      double adFeedTimeBins[nFeedTimeBin + 1];
-      for (int ie = 0; ie < (nFeedTimeBin + 1); ie++)
+      double adFeedTimeStep = (TMath::Log10(g_dFeedTimeMax) - TMath::Log10(1e-1)) / g_nFeedTimeBin;
+      double adFeedTimeBins[g_nFeedTimeBin + 1];
+      for (int ie = 0; ie < (g_nFeedTimeBin + 1); ie++)
         adFeedTimeBins[ie] = 1e-1 * TMath::Power(10., ie * adFeedTimeStep);
       g_ah2FeedTime[real][exim] =
           new TH2D(Form("h2ExI%dFeedTime_%d", exim, real), Form("Feeding Levels: %2.3f MeV, Real%d", dExIMean, real),
-                   g_nDisLvlMax, 0, g_nDisLvlMax, nFeedTimeBin, adFeedTimeBins);
+                   g_nDisLvlMax, 0, g_nDisLvlMax, g_nFeedTimeBin, adFeedTimeBins);
 
       int nBinEx = 300, nBinEg = 300; // mama, rhosigchi, etc. purposes
       g_ah2ExEg[real][exim] =
@@ -1951,6 +1956,7 @@ void RAINIER(int g_nRunNum = 1) {
       int nConEx1 = nExI1, nSpb1 = nSpbI1, nPar1 = nParI1, nLvlInBin1 = nLvlInBinI1;
       cout << "Getting 1st step widths" << endl;
       double dTotWid1 = GetWidth(nConEx1, nSpb1, nPar1, nLvlInBin1, real, adConWid1, adDisWid1, arConState1);
+      cout << "Life time: " << g_dHBar / dTotWid1 << " fs" << endl;
       cout << "Starting decay events" << endl;
 #endif
 
@@ -2043,6 +2049,9 @@ void RAINIER(int g_nRunNum = 1) {
               double dTotWid;
               if (nConEx == g_nConEBin - 1) { // use saved init width
                 dTotWid = dTotWid1;
+                adConWid = adConWid1;
+                adDisWid = adDisWid1;
+                arConState = arConState1;
               } else { // not at intial state
                 dTotWid = GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState);
               } // Ex single
@@ -2060,15 +2069,9 @@ void RAINIER(int g_nRunNum = 1) {
                 }
               } // bench
 #ifdef bExSingle
-              if (nConEx == g_nConEBin - 1) { // use saved init widths and rands
-                dTimeToLvl += GetDecayTime(dTotWid1, ranEv);
-                bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid1, real,
-                                    adConWid1, adDisWid1, arConState1, ranEv);
-              } else { // not at initial state
-                dTimeToLvl += GetDecayTime(dTotWid, ranEv);
-                bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,
-                                    adConWid, adDisWid, arConState, ranEv);
-              } // Ex Single
+              dTimeToLvl += GetDecayTime(dTotWid, ranEv);
+              bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,
+                                  adConWid, adDisWid, arConState, ranEv);
 #else
               dTimeToLvl += GetDecayTime(dTotWid, ranEv);
               bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,

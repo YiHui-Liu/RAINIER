@@ -8,7 +8,7 @@ Param*.dat
 Run*.root
 Nd144Pop.dat
 .gdb_history
-*.log
+*log*
 
 # Binary Files
 RAINIER

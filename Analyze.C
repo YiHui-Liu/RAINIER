@@ -426,7 +426,7 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   TGraphErrors *agrLvlFeed[nReal][nDisLvlMax];
   TH1D *hLvlTimeProj[nReal][nExIMean][nDisLvlMax];
 
-  double dFeedTimeMax = 220;
+  double dFeedTimeMax = 1e3;
   TF1 *expo2 = new TF1("expo2", "[0]*exp(-x/[1]) + [2]*exp(-x/[3])", 0.001, dFeedTimeMax);
 
   TH2D *ah2FeedTime[nReal][nExIMean];
@@ -436,9 +436,13 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
     } // exim
   } // real
 
+  int anLvlCheck[] = {1, 3}; // only measure these feed times experimentally
+  const int nLvlCheck = sizeof(anLvlCheck) / sizeof(int);
+
   TCanvas *cFit = new TCanvas("cFit", "cFit", 100, 100);
   for (int real = 0; real < nReal; real++) {
-    for (int lvl = 0; lvl < nDisLvlMax; lvl++) {
+    for (int chk = 0; chk < nLvlCheck; chk++) {
+      int lvl = anLvlCheck[chk];
       agrLvlFeed[real][lvl] = new TGraphErrors(nExIMean);
 
       for (int exim = 0; exim < nExIMean; exim++) {
@@ -448,18 +452,26 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
             (TH1D *)ah2FeedTime[real][exim]->ProjectionY(Form("hEx%dFeed%d_%d", exim, lvl, real), lvl, lvl + 1);
 
         double dMaxCount = hLvlTimeProj[real][exim][lvl]->GetMaximum();
-        expo2->SetLineColor(exim + 2);
+        expo2->SetLineColor(exim + 2 * (chk + 1));
         expo2->SetLineStyle(2);
-        expo2->SetParameter(0, dMaxCount / 1.3);
-        expo2->SetParameter(1, 1.0);
-        expo2->SetParameter(2, dMaxCount / 3.0);
-        expo2->SetParameter(3, 20.0);
+        expo2->SetParameters(dMaxCount / 1.3, 1.0, dMaxCount / 3.0, 20.0);
+        expo2->SetParLimits(0, 0, dMaxCount);
+        expo2->SetParLimits(2, 0, dMaxCount);
+
+        hLvlTimeProj[real][exim][lvl]->Scale(1., "width");
+        for (int i = 1; i <= hLvlTimeProj[real][exim][lvl]->GetNbinsX(); i++) {
+          double dBinWidth = hLvlTimeProj[real][exim][lvl]->GetBinWidth(i);
+          double dBinContent = hLvlTimeProj[real][exim][lvl]->GetBinContent(i);
+          hLvlTimeProj[real][exim][lvl]->SetBinError(i, dBinContent / TMath::Sqrt(dBinContent * dBinWidth + 1));
+        } // bin
         hLvlTimeProj[real][exim][lvl]->Fit(expo2, "q", "goff");
+
         hLvlTimeProj[real][exim][lvl]->GetYaxis()->SetTitleSize(0.055);
         hLvlTimeProj[real][exim][lvl]->GetYaxis()->SetTitleFont(132);
         hLvlTimeProj[real][exim][lvl]->GetYaxis()->SetTitleOffset(0.8);
         hLvlTimeProj[real][exim][lvl]->GetYaxis()->CenterTitle();
         hLvlTimeProj[real][exim][lvl]->GetYaxis()->SetTitle("Counts");
+
         double a0 = expo2->GetParameter(0); // dStep1Mag
         double da0 = expo2->GetParError(0); // dStep1MagErr
         double a1 = expo2->GetParameter(1); // dStep1LifeT
@@ -513,9 +525,7 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   hPlotEmpty->Draw();
   cFeedMean->SetLogy();
 
-  TLegend *legFeed = new TLegend(0.9, 0.7, 0.7, 0.9, "Fed Lvls");
-  int anLvlCheck[] = {3, 8, 10}; // only measure these feed times experimentally
-  const int nLvlCheck = sizeof(anLvlCheck) / sizeof(int);
+  TLegend *legFeed = new TLegend(0.1, 0.7, 0.3, 0.9, "Fed Lvls");
   // plot last real; declared earlier
 
   double dFeedMeanMin = 1e9;
@@ -542,15 +552,25 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   legFeed->Draw("Same");
 
   TCanvas *cExFeed = new TCanvas("cExFeed", "cExFeed", 800, 650);
+  cExFeed->SetLogx();
   cExFeed->SetLogy();
   TLegend *legExFeed = new TLegend(0.9, 0.52, 0.7, 0.9, "#bar{E}_{x,I} (MeV)");
-  int nLvl = 3; // lvl to plot
   for (int exim = 0; exim < nExIMean; exim++) {
-    hLvlTimeProj[real0][exim][nLvl]->GetXaxis()->SetTitleOffset(0.8);
-    hLvlTimeProj[real0][exim][nLvl]->SetLineColor(exim + 2);
-    hLvlTimeProj[real0][exim][nLvl]->SetLineWidth(2);
-    legExFeed->AddEntry(hLvlTimeProj[real0][exim][nLvl], Form("%2.1f MeV", adExIMean[exim]), "L");
-    hLvlTimeProj[real0][exim][nLvl]->Draw("same");
+    double dExI = adExIMean[exim];
+
+    for (int chk = 0; chk < nLvlCheck; chk++) {
+      int nLvl = anLvlCheck[chk];
+      double dEf = adDisEne[nLvl];
+
+      hLvlTimeProj[real0][exim][nLvl]->SetTitle(Form("Feeding Levels, Real%d", real0));
+      hLvlTimeProj[real0][exim][nLvl]->GetXaxis()->SetTitleOffset(0.8);
+      hLvlTimeProj[real0][exim][nLvl]->GetXaxis()->SetRangeUser(0.001, dFeedTimeMax * 10);
+      hLvlTimeProj[real0][exim][nLvl]->SetLineColor(exim + 2 * (chk + 1));
+      hLvlTimeProj[real0][exim][nLvl]->SetLineWidth(2);
+      hLvlTimeProj[real0][exim][nLvl]->Draw("same");
+
+      legExFeed->AddEntry(hLvlTimeProj[real0][exim][nLvl], Form("%2.3f -> %2.3f MeV", dExI, dEf), "L");
+    }
   }
   legExFeed->Draw("same");
 } // Feed
