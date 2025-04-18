@@ -418,6 +418,8 @@ void AnalyzeDRTSC() { // Primary to select levels
 } // DRTSC
 
 /////////////////////////// Feeding Analysis ///////////////////////////////////
+const int g_anColor[] = {kPink - 9, kTeal - 9, kAzure - 9, kOrange - 9, kViolet - 9, kSpring - 9};
+
 void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   TCanvas *cFeed = new TCanvas("cFeed", "cFeed", 800, 650);
   cFeed->SetLogz();
@@ -426,7 +428,7 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   TGraphErrors *agrLvlFeed[nReal][nDisLvlMax];
   TH1D *hLvlTimeProj[nReal][nExIMean][nDisLvlMax];
 
-  double dFeedTimeMax = 1e3;
+  double dFeedTimeMax = 300;
   TF1 *expo2 = new TF1("expo2", "[0]*exp(-x/[1]) + [2]*exp(-x/[3])", 0.001, dFeedTimeMax);
 
   TH2D *ah2FeedTime[nReal][nExIMean];
@@ -436,7 +438,7 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
     } // exim
   } // real
 
-  int anLvlCheck[] = {1, 3}; // only measure these feed times experimentally
+  int anLvlCheck[] = {1, 3, 8}; // only measure these feed times experimentally
   const int nLvlCheck = sizeof(anLvlCheck) / sizeof(int);
 
   TCanvas *cFit = new TCanvas("cFit", "cFit", 100, 100);
@@ -451,20 +453,25 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
         hLvlTimeProj[real][exim][lvl] =
             (TH1D *)ah2FeedTime[real][exim]->ProjectionY(Form("hEx%dFeed%d_%d", exim, lvl, real), lvl, lvl + 1);
 
-        double dMaxCount = hLvlTimeProj[real][exim][lvl]->GetMaximum();
-        expo2->SetLineColor(exim + 2 * (chk + 1));
-        expo2->SetLineStyle(2);
-        expo2->SetParameters(dMaxCount / 1.3, 1.0, dMaxCount / 3.0, 20.0);
-        expo2->SetParLimits(0, 0, dMaxCount);
-        expo2->SetParLimits(2, 0, dMaxCount);
-
+        cout << "Fitting Feeding Time From " << dExIMean << " -> " << adDisEne[lvl] << " MeV" << endl;
         hLvlTimeProj[real][exim][lvl]->Scale(1., "width");
+        double dMaxCount = hLvlTimeProj[real][exim][lvl]->GetBinContent(1);
         for (int i = 1; i <= hLvlTimeProj[real][exim][lvl]->GetNbinsX(); i++) {
           double dBinWidth = hLvlTimeProj[real][exim][lvl]->GetBinWidth(i);
           double dBinContent = hLvlTimeProj[real][exim][lvl]->GetBinContent(i);
           hLvlTimeProj[real][exim][lvl]->SetBinError(i, dBinContent / TMath::Sqrt(dBinContent * dBinWidth + 1));
+          dMaxCount = TMath::Max(dMaxCount, dBinContent);
         } // bin
-        hLvlTimeProj[real][exim][lvl]->Fit(expo2, "q", "goff");
+
+        expo2->SetLineColor(g_anColor[exim] + 2 * (chk + 1));
+        expo2->SetLineStyle(2);
+        expo2->SetParameters(dMaxCount / 1.3, 10, dMaxCount / 3.0, 100.0);
+        expo2->SetParLimits(0, dMaxCount / 3, dMaxCount * 1.2);
+        expo2->SetParLimits(1, 1, 50);
+        expo2->SetParLimits(2, 0, dMaxCount / 2);
+        expo2->SetParLimits(3, 10, dFeedTimeMax);
+
+        hLvlTimeProj[real][exim][lvl]->Fit(expo2, "R", "goff");
 
         hLvlTimeProj[real][exim][lvl]->GetYaxis()->SetTitleSize(0.055);
         hLvlTimeProj[real][exim][lvl]->GetYaxis()->SetTitleFont(132);
@@ -564,8 +571,8 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
 
       hLvlTimeProj[real0][exim][nLvl]->SetTitle(Form("Feeding Levels, Real%d", real0));
       hLvlTimeProj[real0][exim][nLvl]->GetXaxis()->SetTitleOffset(0.8);
-      hLvlTimeProj[real0][exim][nLvl]->GetXaxis()->SetRangeUser(0.001, dFeedTimeMax * 10);
-      hLvlTimeProj[real0][exim][nLvl]->SetLineColor(exim + 2 * (chk + 1));
+      hLvlTimeProj[real0][exim][nLvl]->GetXaxis()->SetRangeUser(0, dFeedTimeMax);
+      hLvlTimeProj[real0][exim][nLvl]->SetLineColor(g_anColor[exim] + 2 * (chk + 1));
       hLvlTimeProj[real0][exim][nLvl]->SetLineWidth(2);
       hLvlTimeProj[real0][exim][nLvl]->Draw("same");
 
