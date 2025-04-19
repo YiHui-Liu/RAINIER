@@ -318,6 +318,7 @@ const double g_dICCMax = 1.0;               // MeV; Uses last Ebin ICC value for
 #include "TROOT.h"
 #include "TString.h"
 #include "TTimeStamp.h"
+#include "TTree.h"
 
 // determine OS for briccs
 #ifdef __linux__
@@ -1877,6 +1878,13 @@ void RAINIER(int g_nRunNum = 1) {
       cout << "  Initial Excitation Mean: " << dExIMean << " +- " << dExIRes << " MeV" << endl;
 #endif
 
+      ///// Initialize Tree /////
+      TTree *tGSpec = new TTree(Form("tExI%dGSpec_%d", exim, real), "Gamma Spectrum");
+      std::vector<Double_t> v_dEg;
+      int nGammaNum;
+      tGSpec->Branch("dEg", &v_dEg);
+      tGSpec->Branch("nGammaNum", &nGammaNum, "nGammaNum/I");
+
       ///// Initialize Histograms /////
       g_ah2PopLvl[real][exim] = new TH2D(Form("h2ExI%dPopLvl_%d", exim, real),
                                          Form("Population of Levels: %2.3f MeV, Real%d", dExIMean, real),
@@ -1991,6 +1999,8 @@ void RAINIER(int g_nRunNum = 1) {
           if (!(ev % g_nEvUpdate))
             cout << "    " << ev << " / " << g_nEvent << "\r" << flush;
 #endif
+          v_dEg.clear();
+          nGammaNum = 0;
           TRandom2 ranEv(1 + real + ev * g_nReal);
 
           /////// initial state formation ///////
@@ -2102,7 +2112,10 @@ void RAINIER(int g_nRunNum = 1) {
               if (dProbEle > dRanICC)
                 bIsElectron = true;
 
-              if (!bIsElectron) {                                        // emitted gamma
+              if (!bIsElectron) { // emitted gamma
+                v_dEg.push_back(dEg);
+                nGammaNum++;
+
                 double dExDet = dExI + ranEv.Gaus(0.0, GetExIRes(dExI)); // particle resolution
                 g_ahGSpec[real][exim]->Fill(dEg);
                 g_ah2ExEg[real][exim]->Fill(dEg * 1000, dExDet * 1000);
@@ -2144,9 +2157,13 @@ void RAINIER(int g_nRunNum = 1) {
             } // IsAlive
 
           } // no longer excited
+
+          tGSpec->Fill();
         } //////////////////////////////////////////////////////////////////////
         ////////////////////////// EVENTS //////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
+
+        tGSpec->Write();
 
         // deallocate memory
         delete[] adConWid;
@@ -2260,7 +2277,7 @@ void RAINIER(int g_nRunNum = 1) {
   legGSF->AddEntry(fnGSFE1, "E1", "l");
   legGSF->AddEntry(fnGSFM1, "M1", "l");
   legGSF->AddEntry(fnGSFE2, "E2", "l");
-  legGSF->AddEntry(fnGSFTot, "E1 + M1", "l");
+  legGSF->AddEntry(fnGSFTot, "Tot", "l");
   legGSF->Draw("same");
   cGSF->SetLogy();
   cGSF->Write();
