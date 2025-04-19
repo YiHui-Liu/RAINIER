@@ -797,7 +797,7 @@ void BuildConstructed(int nReal) {
 } // BuildConstructed
 
 void PrintConLvl() {
-  int nSpbPrint = 9; // won't algin with double digit spins or bin content > 9
+  int nSpbPrint = g_nConSpbMax - 1;
   cout << "****** Constructed ******" << endl;
   cout << "More levels exist at higher spins" << endl;
   cout << "Parity   ";
@@ -811,30 +811,33 @@ void PrintConLvl() {
   cout << endl;
   cout << "Spin Bin ";
   for (int spb = nSpbPrint; spb >= 0; spb--) {
-    cout << spb << " ";
+    cout << spb % 10 << " ";
   }
   cout << " ";
   for (int spb = 0; spb <= nSpbPrint; spb++) {
-    cout << spb << " ";
+    cout << spb % 10 << " ";
   }
   cout << endl;
 
   cout << "E(MeV)   " << endl;
   for (int ex = 0; ex < g_nConEBin; ex++) {
     cout << fixed << setprecision(3) << g_adConExCen[ex] << "    ";
-    int par = 0;
+    int par = 0, nCnt = 0;
     for (int spb = nSpbPrint; spb >= 0; spb--) {
+      nCnt += g_anConLvl[EJP(ex, spb, par)];
       cout << g_anConLvl[EJP(ex, spb, par)] << "|";
     } // sp bin
     cout << " ";
     par = 1;
     for (int spb = 0; spb <= nSpbPrint; spb++) {
+      nCnt += g_anConLvl[EJP(ex, spb, par)];
       cout << g_anConLvl[EJP(ex, spb, par)] << "|";
     } // sp bin
     // printing energy of every level in bin would be so many more lines
     // but could be done with something like:
     // for(int lvl=0; lvl<g_anConLvl[EJP(ex,spb,par)]; lvl++)
     //   cout << GetInBinE(ex,spb,par,lvl) << endl;
+    cout << " " << setw(3) << nCnt << " ";
     cout << scientific << endl;
   } // ex
   cout << "Total Number of Levels = " << g_nConLvlTot << endl;
