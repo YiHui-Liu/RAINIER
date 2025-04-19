@@ -1476,63 +1476,65 @@ bool TakeStep(int &nConEx, int &nSpb, int &nPar, int &nDisEx, int &nLvlInBin, in
     } // discrete lvl
 
     ///// decay to constructed scheme? /////
-    for (int spb = nSpb - 2; spb <= nSpb + 2; spb++) { // dipole and quadrapole
-      for (int par = 0; par < 2; par++) {
-        int nTransType = GetTransType(nSpb, nPar, spb, par);
-        if (nTransType != 0) {
-          for (int ex = 0; ex < nConEx; ex++) {
-            double dConWid = adConWid[EJP(ex, spb, par)];
-            if (dConWid > 1e-4)
-              cerr << "err: con width uninit" << endl;
-            dWidCumulative += dConWid;
+    if (!bFoundLvl) {
+      for (int spb = nSpb - 2; spb <= nSpb + 2; spb++) { // dipole and quadrapole
+        for (int par = 0; par < 2; par++) {
+          int nTransType = GetTransType(nSpb, nPar, spb, par);
+          if (nTransType != 0) {
+            for (int ex = 0; ex < nConEx; ex++) {
+              double dConWid = adConWid[EJP(ex, spb, par)];
+              if (dConWid > 1e-4)
+                cerr << "err: con width uninit" << endl;
+              dWidCumulative += dConWid;
 
-            if (dWidCumulative >= dRanWid) { // once adds up to dRanWid, it decays
-              if (!bFoundLvl) {              // possibly already decayed to discrete
-                bFoundLvl = true;
-                nToConEx = ex;
-                nToDisEx = g_nDisLvlMax;
-                nToSpb = spb;
-                nToPar = par;
-                nTransMade = nTransType;
-                // need to backtrack width sum and find out which individual
-                // level in EJP bin it decayed to since many levels in a bin
-                // each with random width according to PT distribution
-                dWidCumulative -= dConWid;
-                bool bFoundLvlInBin = false;
+              if (dWidCumulative >= dRanWid) { // once adds up to dRanWid, it decays
+                if (!bFoundLvl) {              // possibly already decayed to discrete
+                  bFoundLvl = true;
+                  nToConEx = ex;
+                  nToDisEx = g_nDisLvlMax;
+                  nToSpb = spb;
+                  nToPar = par;
+                  nTransMade = nTransType;
+                  // need to backtrack width sum and find out which individual
+                  // level in EJP bin it decayed to since many levels in a bin
+                  // each with random width according to PT distribution
+                  dWidCumulative -= dConWid;
+                  bool bFoundLvlInBin = false;
 
-                double dLvlSpac = 1.0 / GetDensity(dExI, dSp, nPar);
-                int nLvlTrans = g_anConLvl[EJP(ex, spb, par)];
-                if (nLvlTrans) {
-                  double dExF = g_adConExCen[ex];
-                  double dEg = dExI - dExF;
-                  TRandom2 ranStr = arConState[EJP(ex, spb, par)];
+                  double dLvlSpac = 1.0 / GetDensity(dExI, dSp, nPar);
+                  int nLvlTrans = g_anConLvl[EJP(ex, spb, par)];
+                  if (nLvlTrans) {
+                    double dExF = g_adConExCen[ex];
+                    double dEg = dExI - dExF;
+                    TRandom2 ranStr = arConState[EJP(ex, spb, par)];
 
-                  for (int outlvl = 0; outlvl < nLvlTrans; outlvl++) {
-                    double dMixDelta2Tmp;
-                    double dStrTmp = // need to get delta2
-                        GetStr(dExI, dEg, nTransType, dMixDelta2Tmp, ranStr);
-                    double dStr = dStrTmp * (1.0 + GetICC(dEg, nTransType, dMixDelta2Tmp));
-                    dWidCumulative += dStr * dLvlSpac;
-                    if (dWidCumulative >= dRanWid) {
-                      if (!bFoundLvlInBin) { // possibly decayed prev inbin lvl
-                        bFoundLvlInBin = true;
-                        nToLvlInBin = outlvl;
-                        dToMixDelta2 = dMixDelta2Tmp;
-                        outlvl = nLvlTrans; // break loop for speed
-                      } // found lvl in bin
-                    } // Cumulative >= Rand
-                  } // outlvl
+                    for (int outlvl = 0; outlvl < nLvlTrans; outlvl++) {
+                      double dMixDelta2Tmp;
+                      double dStrTmp = // need to get delta2
+                          GetStr(dExI, dEg, nTransType, dMixDelta2Tmp, ranStr);
+                      double dStr = dStrTmp * (1.0 + GetICC(dEg, nTransType, dMixDelta2Tmp));
+                      dWidCumulative += dStr * dLvlSpac;
+                      if (dWidCumulative >= dRanWid) {
+                        if (!bFoundLvlInBin) { // possibly decayed prev inbin lvl
+                          bFoundLvlInBin = true;
+                          nToLvlInBin = outlvl;
+                          dToMixDelta2 = dMixDelta2Tmp;
+                          outlvl = nLvlTrans; // break loop for speed
+                        } // found lvl in bin
+                      } // Cumulative >= Rand
+                    } // outlvl
 
-                  ex = nConEx; // break out of loops, for speed
-                  spb = g_nConSpbMax;
-                  par = 2;
-                } // final bin has lvls
-              } // found lvl
-            } // Cumulative >= Rand
-          } // ex
-        } // possible
-      } // par
-    } // sp bin
+                    ex = nConEx; // break out of loops, for speed
+                    spb = g_nConSpbMax;
+                    par = 2;
+                  } // final bin has lvls
+                } // found lvl
+              } // Cumulative >= Rand
+            } // ex
+          } // possible
+        } // par
+      } // sp bin
+    } // constructed scheme
   } ///// in constructed scheme /////
   else { /////// in discrete ///////
     nToConEx = -1;
