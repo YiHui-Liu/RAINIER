@@ -2078,15 +2078,10 @@ void RAINIER(int g_nRunNum = 1) {
                   g_grTotWidAvg[exim]->SetPoint(real, real, dTotWid);
                 }
               } // bench
-#ifdef bExSingle
+
               dTimeToLvl += GetDecayTime(dTotWid, ranEv);
               bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,
                                   adConWid, adDisWid, arConState, ranEv);
-#else
-              dTimeToLvl += GetDecayTime(dTotWid, ranEv);
-              bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,
-                                  adConWid, adDisWid, arConState, ranEv);
-#endif
             } // end of decay
             nStep++;
 
