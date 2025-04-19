@@ -552,11 +552,11 @@ double GetEff(double dEx) {
 } // GetEff
 
 double GetLDa(double dEx) { // TALYS 1.8 asymptotic dependence
-  double dEff = GetEff(dEx);
 #ifdef bLDaConst
   return g_dLDa;
 #endif
 #ifdef bLDaEx
+  double dEff = GetEff(dEx);
   return g_dLDaAsym * (1 + g_dShellDelW * (1 - exp(-g_dDampGam * dEff)) / dEff);
 #endif
 #ifdef bLD_Table
@@ -652,7 +652,6 @@ double GetDensity(double dEx, double dSp, int nPar) {
   double dSpDen = (dSp + 0.5) * exp(-pow(dSp + 0.5, 2) / (2 * dSpinCut2)) / dSpinCut2;
 
 #ifdef bPar_Equipar
-  int nParity = nPar; // basically unused in this model
   double dParDen = 0.5;
 #endif
 #ifdef bPar_Edep
@@ -1272,6 +1271,9 @@ void InitICC() {
     cout << bin << " / " << g_nBinICC << "\r" << flush;
   } // bin
   int nSuccess = system("rm oAlpha.briccs");
+  if (nSuccess == -1) {
+    cerr << "err: BrIcc file removal failure" << endl;
+  }
   cout << endl;
 } // InitICC
 #endif
