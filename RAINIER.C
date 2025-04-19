@@ -1798,15 +1798,15 @@ TH1D *g_hJIntrins;
 void InitFn() {
   fnLDa = new TF1("fnLDa", [](double *x, double *p) { return GetLDa(x[0]); }, 0, 10);
   fnSpCut = new TF1("fnSpCut", [](double *x, double *p) { return sqrt(GetSpinCut2(x[0])); }, 0, 10);
-  fnGSFE1 = new TF1("fnGSFE1", [](double *x, double *p) { return GetStrE1(5, x[0]) / pow(x[0], 3); }, 0, 18);
-  fnGSFM1 = new TF1("fnGSFM1", [](double *x, double *p) { return GetStrM1(x[0]) / pow(x[0], 3); }, 0, 18);
-  fnGSFE2 = new TF1("fnGSFE2", [](double *x, double *p) { return GetStrE2(x[0]) / pow(x[0], 5); }, 0, 18);
+  fnGSFE1 = new TF1("fnGSFE1", [](double *x, double *p) { return GetStrE1(5, x[0]) / pow(x[0], 3); }, 0, g_dExIMax);
+  fnGSFM1 = new TF1("fnGSFM1", [](double *x, double *p) { return GetStrM1(x[0]) / pow(x[0], 3); }, 0, g_dExIMax);
+  fnGSFE2 = new TF1("fnGSFE2", [](double *x, double *p) { return GetStrE2(x[0]) / pow(x[0], 5); }, 0, g_dExIMax);
   fnGSFTot = new TF1(
       "fnGSFTot",
       [](double *x, double *p) {
-        return GetStrE1(5, x[0]) / pow(x[0], 3) + GetStrM1(x[0]) / pow(x[0], 3); // + GetStrE2(x[0]) / pow(x[0], 5);
+        return GetStrE1(5, x[0]) / pow(x[0], 3) + GetStrM1(x[0]) / pow(x[0], 3) + GetStrE2(x[0]) / pow(x[0], 5);
       },
-      0, 18);
+      0, g_dExIMax);
 
   double dEx = 0.5 * g_dExIMax; // spincut is slowly varying fn of E
   g_hJIntrins = new TH1D("hJIntrins", "Underlying J Dist", int(g_dPlotSpMax), 0.0, int(g_dPlotSpMax));
