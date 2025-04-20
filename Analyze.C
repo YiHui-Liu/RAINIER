@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <vector>
 
+#include "TArrow.h"
 #include "TCanvas.h"
 #include "TF1.h"
 #include "TFile.h"
@@ -12,12 +13,15 @@
 #include "TGraphErrors.h"
 #include "TH1D.h"
 #include "TH2D.h"
+#include "TLatex.h"
 #include "TLegend.h"
 #include "TLine.h"
 #include "TMath.h"
 #include "TROOT.h"
+#include "TRandom2.h"
 #include "TString.h"
 #include "TStyle.h"
+#include "TTree.h"
 
 #include "th22mama.C"
 
@@ -581,3 +585,113 @@ void AnalyzeFeed(int exim0 = nExIMean - 1, int real0 = nReal - 1) {
   }
   legExFeed->Draw("same");
 } // Feed
+
+/////////////////////////// Cascade Analysis ///////////////////////////////////
+void AnalyzeCascade(int nEntryID = 0, int exim0 = nExIMean - 1, int real0 = nReal - 1) {
+  const double dHBar = 6.5821195e-7; // MeV fs
+  TRandom2 ranEv(exim0 + real0 * 10 + nEntryID * 100);
+
+  TString sDataFile = TString::Format("Run%04d.root", nRunNum);
+  TFile *fDataFile = new TFile(sDataFile, "read");
+  TTree *tData = (TTree *)fDataFile->Get(Form("tExI%dGSpec_%d", exim0, real0));
+
+  int nGammaNum;
+  double dTotFeedingTime;
+  std::vector<int> *v_nLevel = 0, *v_nSpb = 0, *v_nPar = 0;
+  std::vector<double> *v_dEx = 0, *v_dTotWidth = 0, *v_dEg = 0;
+
+  tData->SetBranchAddress("GammaNum", &nGammaNum);
+  tData->SetBranchAddress("TotFeedingTime", &dTotFeedingTime);
+  tData->SetBranchAddress("vLevel", &v_nLevel);
+  tData->SetBranchAddress("vSpb", &v_nSpb);
+  tData->SetBranchAddress("vPar", &v_nPar);
+  tData->SetBranchAddress("vEx", &v_dEx);
+  tData->SetBranchAddress("vTotWidth", &v_dTotWidth);
+  tData->SetBranchAddress("vEg", &v_dEg);
+  tData->GetEntry(nEntryID);
+
+  int *anLevel = v_nLevel->data();
+  int *anSpb = v_nSpb->data();
+  int *anPar = v_nPar->data();
+  double *adEx = v_dEx->data();
+  double *adTotWidth = v_dTotWidth->data();
+  double *adEg = v_dEg->data();
+  int nLevelNum = v_nLevel->size();
+
+  TCanvas *cCascade = new TCanvas("cCascade", "cCascade", 800, 650);
+  cCascade->SetFrameLineColor(kWhite);
+  cCascade->SetLeftMargin(0.05);
+
+  TGraph *gCascade = new TGraph();
+  gCascade->AddPoint(0, 0);
+  gCascade->AddPoint(0, adEx[0]);
+  gCascade->GetXaxis()->SetTickLength(0);
+  gCascade->GetXaxis()->SetLabelSize(0);
+  gCascade->GetXaxis()->SetAxisColor(kWhite);
+  gCascade->GetYaxis()->SetTickLength(0.01);
+  // gCascade->GetYaxis()->SetLabelSize(0);
+  // gCascade->GetYaxis()->SetAxisColor(kWhite);
+  gCascade->GetYaxis()->SetRangeUser(-0.1, adEx[0] + 0.1);
+  gCascade->Draw("AP");
+
+  for (int nLvl = 0; nLvl < nLevelNum; nLvl++) {
+    TLine *lLevel = new TLine(0.1, adEx[nLvl], 0.5, adEx[nLvl]);
+    if (adTotWidth[nLvl] < dHBar / 1e12) // 1ms
+      lLevel->SetLineStyle(0);
+    else
+      lLevel->SetLineStyle(9);
+    lLevel->SetLineWidth(2);
+    lLevel->SetLineColor(kBlack);
+    lLevel->Draw("same");
+
+    TLatex *lLevelID = new TLatex();
+    if (nLvl && (adEx[nLvl - 1] - adEx[nLvl]) / adEx[0] <= 0.03)
+      lLevelID->SetText(0.02, adEx[nLvl], Form("%2d", anLevel[nLvl]));
+    else
+      lLevelID->SetText(0.06, adEx[nLvl], Form("%2d", anLevel[nLvl]));
+    lLevelID->SetTextSize(0.03);
+    lLevelID->SetTextColor(kBlack);
+    lLevelID->SetTextAlign(12);
+    lLevelID->Draw("same");
+
+    TLatex *lLevelInfo = new TLatex();
+    TString sLevelLife;
+    double dT12 = log(2) * dHBar / adTotWidth[nLvl];
+    if (dT12 >= 1e3) { // 1 ps
+      if (dT12 != 9.99e17) {
+        sLevelLife = Form("%.2e ps", dT12 / 1e3);
+      } else
+        sLevelLife = "unknown";
+    } else
+      sLevelLife = Form("%.2e eV", adTotWidth[nLvl] * 1e6);
+    TString sLevelInfo =
+        Form("%07.2f %2d^{%s} %s", adEx[nLvl] * 1e3, anSpb[nLvl], (anPar[nLvl] == 1) ? "+" : "-", sLevelLife.Data());
+    if (nLvl && (adEx[nLvl - 1] - adEx[nLvl]) / adEx[0] <= 0.03)
+      lLevelInfo->SetText(0.85, adEx[nLvl], sLevelInfo);
+    else
+      lLevelInfo->SetText(0.51, adEx[nLvl], sLevelInfo);
+    lLevelInfo->SetTextSize(0.03);
+    lLevelInfo->SetTextColor(kBlack);
+    lLevelInfo->SetTextAlign(12);
+    lLevelInfo->Draw("same");
+
+    if (nLvl) {
+      double dX = ranEv.Uniform(0.1, 0.5 - 0.1);
+      double dY = (adEx[nLvl - 1] - adEx[nLvl]) / 3 + adEx[nLvl];
+      TLatex *lGammaInfo = new TLatex();
+      TArrow *aGamma = new TArrow(dX, adEx[nLvl - 1], dX, adEx[nLvl], 0.05, "|>");
+      aGamma->SetLineWidth(2);
+      if (nLvl == nLevelNum - 1 && nGammaNum != nLevelNum - 1) {
+        aGamma->SetLineStyle(9);
+        aGamma->SetLineColor(kRed);
+        lGammaInfo->SetText(dX + 0.01, dY, Form("ICC = %.1f keV", adEx[nLvl - 1] * 1e3));
+      } else {
+        aGamma->SetLineColor(kBlack);
+        lGammaInfo->SetText(dX + 0.01, dY, Form("Eg = %.1f keV", adEg[nLvl - 1] * 1e3));
+      }
+      lGammaInfo->SetTextSize(0.02);
+      lGammaInfo->Draw("same");
+      aGamma->Draw("same");
+    }
+  }
+}

@@ -7,7 +7,7 @@ TARGET = RAINIER
 CXX = g++
 CXXFLAGS_RELEASE = -Wall -O2 -g `root-config --cflags`
 CXXFLAGS_DEBUG = -Wall -O0 -g `root-config --cflags`
-LDFLAGS = `root-config --libs`  -fopenmp
+LDFLAGS = `root-config --libs` -fopenmp
 
 ifeq ($(MODE), debug)
     CXXFLAGS = $(CXXFLAGS_DEBUG)

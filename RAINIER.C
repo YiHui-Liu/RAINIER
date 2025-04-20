@@ -55,9 +55,14 @@ const double g_dExIResp1 = 0.55;
 #endif           // parallel
 
 ////////////////////// Analysis Settings ///////////////////////////////////////
-const int g_nEgBin = 500;
+#define nCascadeVerbose 1
+// 0: don't save cascade info
+// 1: save ngamma and gammas
+// 2: 1 + states info
+
+const int g_nEgBin = 600;
 ///// JPop Analysis /////
-const double g_dPlotSpMax = 10.0;
+const double g_dPlotSpMax = 20.0;
 // const int g_anPopLvl[] = {4,6,8,10,7,9};// low-ly populated lvls,0 = gs //56Fe
 const int g_anPopLvl[] = {13, 8, 14, 10, 6, 11}; // 144Nd
 
@@ -1329,7 +1334,7 @@ double GetWidth(int nExI, int nSpbI, int nParI, int nLvlInBinI, int nReal, doubl
     else
       dExI = g_adConExCen[nExI];
 #else
-                   // double dExI = g_adConExCen[nExI]; // fast, good approximation
+    // double dExI = g_adConExCen[nExI]; // fast, good approximation
     double dExI = GetInBinE(nReal, nExI, nSpbI, nParI, nLvlInBinI);
 #endif
 
@@ -1885,12 +1890,25 @@ void RAINIER(int g_nRunNum = 1) {
       cout << "  Initial Excitation Mean: " << dExIMean << " +- " << dExIRes << " MeV" << endl;
 #endif
 
-      ///// Initialize Tree /////
+///// Initialize Tree /////
+#if nCascadeVerbose >= 1
       TTree *tGSpec = new TTree(Form("tExI%dGSpec_%d", exim, real), "Gamma Spectrum");
-      std::vector<Double_t> v_dEg;
+      std::vector<double> v_dEg;
       int nGammaNum;
-      tGSpec->Branch("dEg", &v_dEg);
-      tGSpec->Branch("nGammaNum", &nGammaNum, "nGammaNum/I");
+      tGSpec->Branch("vEg", &v_dEg);
+      tGSpec->Branch("GammaNum", &nGammaNum, "nGammaNum/I");
+#if nCascadeVerbose >= 2
+      std::vector<double> v_dEx, v_dTotWidth;
+      std::vector<int> v_nLevel, v_nSpb, v_nPar;
+      double dTotFeedingTime;
+      tGSpec->Branch("vLevel", &v_nLevel);
+      tGSpec->Branch("vSpb", &v_nSpb);
+      tGSpec->Branch("vPar", &v_nPar);
+      tGSpec->Branch("vEx", &v_dEx);
+      tGSpec->Branch("vTotWidth", &v_dTotWidth);
+      tGSpec->Branch("TotFeedingTime", &dTotFeedingTime, "dTotFeedingTime/D");
+#endif
+#endif
 
       ///// Initialize Histograms /////
       g_ah2PopLvl[real][exim] = new TH2D(Form("h2ExI%dPopLvl_%d", exim, real),
@@ -2006,8 +2024,20 @@ void RAINIER(int g_nRunNum = 1) {
           if (!(ev % g_nEvUpdate))
             cout << "    " << ev << " / " << g_nEvent << "\r" << flush;
 #endif
+
+#if nCascadeVerbose >= 1
           v_dEg.clear();
           nGammaNum = 0;
+#if nCascadeVerbose >= 2
+          v_dEx.clear();
+          v_dTotWidth.clear();
+          v_nLevel.clear();
+          v_nSpb.clear();
+          v_nPar.clear();
+          dTotFeedingTime = 0.0;
+#endif
+#endif
+
           TRandom2 ranEv(1 + real + ev * g_nReal);
 
           /////// initial state formation ///////
@@ -2025,6 +2055,13 @@ void RAINIER(int g_nRunNum = 1) {
             dExI = GetInBinE(real, nExI, nSpbI, nParI, nLvlInBinI);
           }
           g_ah2PopI[real][exim]->Fill(nSpbI, dExI);
+#if nCascadeVerbose >= 2
+          v_nLevel.push_back(nConEx < 0 ? nDisEx : nConEx + g_nDisLvlMax);
+          v_nSpb.push_back(nSpbI);
+          v_nPar.push_back(nParI);
+          v_dEx.push_back(dExI);
+          v_dTotWidth.push_back(GetWidth(nConEx, nSpbI, nParI, nLvlInBinI, real, adConWid, adDisWid, arConState));
+#endif // add init state to tree
 
           double dTimeToLvl = 0.0;
           int nStep = 0;
@@ -2053,9 +2090,9 @@ void RAINIER(int g_nRunNum = 1) {
 
             ///// during decay /////
             int nTransMade = 0; // want to know multipole and character for ICC
-            if (nConEx < 0) {   ///// in discrete /////
-              double dTotWid = 0.0;
-              double dLifeT = g_adDisT12[nDisEx] / log(2); // lifetime from file
+            double dTotWid = 0.0;
+            if (nConEx < 0) { ///// in discrete /////
+              double dLifeT = g_adDisT12[nDisEx] / log(2);
               double dDecayTime = ranEv.Exp(dLifeT);
               dTimeToLvl += dDecayTime;
               bIsAlive = TakeStep( // no variable change if !bIsAlive
@@ -2063,7 +2100,6 @@ void RAINIER(int g_nRunNum = 1) {
                   arConState, ranEv);
             } else { ///// in constructed scheme //////
 #ifdef bExSingle
-              double dTotWid;
               if (nConEx == g_nConEBin - 1) { // use saved init width
                 dTotWid = dTotWid1;
                 adConWid = adConWid1;
@@ -2073,7 +2109,7 @@ void RAINIER(int g_nRunNum = 1) {
                 dTotWid = GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState);
               } // Ex single
 #else
-              double dTotWid = GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState);
+              dTotWid = GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState);
 #endif
               if (ev == 0 && nStep == 0) { // bench
                 if (real != 0) {
@@ -2115,8 +2151,17 @@ void RAINIER(int g_nRunNum = 1) {
                 bIsElectron = true;
 
               if (!bIsElectron) { // emitted gamma
+#if nCascadeVerbose >= 1
                 v_dEg.push_back(dEg);
                 nGammaNum++;
+#if nCascadeVerbose >= 2
+                v_nLevel.push_back(nConEx < 0 ? nDisEx : nConEx + g_nDisLvlMax);
+                v_nSpb.push_back(nSpb);
+                v_nPar.push_back(nPar);
+                v_dEx.push_back(dExPost);
+                v_dTotWidth.push_back(nConEx < 0 ? log(2) * g_dHBar / g_adDisT12[nDisEx] : dTotWid);
+#endif
+#endif
 
                 double dExDet = dExI + ranEv.Gaus(0.0, GetExIRes(dExI)); // particle resolution
                 g_ahGSpec[real][exim]->Fill(dEg);
@@ -2160,6 +2205,16 @@ void RAINIER(int g_nRunNum = 1) {
 
           } // no longer excited
 
+#if nCascadeVerbose >= 2
+          if (v_nLevel[nGammaNum]) {
+            v_nLevel.push_back(0);
+            v_nSpb.push_back(g_adDisSp[0]);
+            v_nPar.push_back(g_anDisPar[0]);
+            v_dEx.push_back(0);
+            v_dTotWidth.push_back(log(2) * g_dHBar / g_adDisT12[0]);
+          }
+          dTotFeedingTime = dTimeToLvl;
+#endif
           tGSpec->Fill();
         } //////////////////////////////////////////////////////////////////////
         ////////////////////////// EVENTS //////////////////////////////////////
