@@ -632,6 +632,7 @@ void AnalyzeCascade(int nEntryID = 0, int exim0 = nExIMean - 1, int real0 = nRea
   // gCascade->GetYaxis()->SetLabelSize(0);
   // gCascade->GetYaxis()->SetAxisColor(kWhite);
   gCascade->GetYaxis()->SetRangeUser(-0.1, adEx[0] + 0.1);
+  gCascade->SetTitle(Form("Entry %d | T = %.2e fs", nEntryID, dTotFeedingTime));
   gCascade->Draw("AP");
 
   for (int nLvl = 0; nLvl < nLevelNum; nLvl++) {
@@ -657,12 +658,30 @@ void AnalyzeCascade(int nEntryID = 0, int exim0 = nExIMean - 1, int real0 = nRea
     TLatex *lLevelInfo = new TLatex();
     TString sLevelLife;
     double dT12 = log(2) * dHBar / adTotWidth[nLvl];
-    if (dT12 >= 1e3) { // 1 ps
-      if (dT12 != 9.99e17) {
-        sLevelLife = Form("%.2e ps", dT12 / 1e3);
-      } else
-        sLevelLife = "unknown";
-    } else
+    if (dT12 >= 1e3 && dT12 != INFINITY) { // 1 ps
+      if (dT12 < 1e3)
+        sLevelLife = Form("%8.2f fs", dT12);
+      else if (dT12 < 1e6)
+        sLevelLife = Form("%8.2f ps", dT12 / 1e3);
+      else if (dT12 < 1e9)
+        sLevelLife = Form("%8.2f ns", dT12 / 1e6);
+      else if (dT12 < 1e12)
+        sLevelLife = Form("%8.2f us", dT12 / 1e9);
+      else if (dT12 < 1e15)
+        sLevelLife = Form("%8.2f ms", dT12 / 1e12);
+      else if (dT12 / 1e15 < 60)
+        sLevelLife = Form("%8.2f  s", dT12 / 1e15);
+      else if (dT12 / 1e15 < 3600)
+        sLevelLife = Form("%7.2f min", dT12 / 1e15 / 60);
+      else if (dT12 / 1e15 < 86400)
+        sLevelLife = Form("%8.2f hr", dT12 / 1e15 / 3600);
+      else if (dT12 / 1e15 < 31557600)
+        sLevelLife = Form("%7.2f day", dT12 / 1e15 / 86400);
+      else
+        sLevelLife = Form("%8.2f yr", dT12 / 1e15 / 31557600);
+    } else if (dT12 < 0 || dT12 == INFINITY)
+      sLevelLife = "unknown";
+    else
       sLevelLife = Form("%.2e eV", adTotWidth[nLvl] * 1e6);
     TString sLevelInfo =
         Form("%07.2f %2d^{%s} %s", adEx[nLvl] * 1e3, anSpb[nLvl], (anPar[nLvl] == 1) ? "+" : "-", sLevelLife.Data());

@@ -419,7 +419,7 @@ void ReadDisInputFile() {
     if (nLvl != lvl || lvl > nLvlTot)
       cerr << "err: File mismatch" << endl;
     if (!dLvlT12) // sometimes no halflife meas, missing half-life
-      dLvlT12 = 999;
+      dLvlT12 = -1;
 
     g_adDisEne[lvl] = dLvlEner;
     g_adDisSp[lvl] = dLvlSp;
@@ -465,7 +465,7 @@ void PrintDisLvl() {
     cout << setw(2) << lvl << ": " << setw(8) << g_adDisEne[lvl] << " " << setw(3) << g_adDisSp[lvl]
          << (g_anDisPar[lvl] == 1 ? "+" : "-") // careful dicebox flips parity
          << " " << setw(9);
-    if (g_adDisT12[lvl] < 1e9)
+    if (g_adDisT12[lvl] > 0)
       cout << g_adDisT12[lvl] << " fs" << endl;
     else
       cout << "N/A" << endl; // lifetime not measured
@@ -2060,7 +2060,7 @@ void RAINIER(int g_nRunNum = 1) {
           v_nSpb.push_back(nSpbI);
           v_nPar.push_back(nParI);
           v_dEx.push_back(dExI);
-          v_dTotWidth.push_back(GetWidth(nConEx, nSpbI, nParI, nLvlInBinI, real, adConWid, adDisWid, arConState));
+          v_dTotWidth.push_back(GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState));
 #endif // add init state to tree
 
           double dTimeToLvl = 0.0;
@@ -2092,9 +2092,11 @@ void RAINIER(int g_nRunNum = 1) {
             int nTransMade = 0; // want to know multipole and character for ICC
             double dTotWid = 0.0;
             if (nConEx < 0) { ///// in discrete /////
-              double dLifeT = g_adDisT12[nDisEx] / log(2);
-              double dDecayTime = ranEv.Exp(dLifeT);
-              dTimeToLvl += dDecayTime;
+              if (g_adDisT12[nDisEx] > 0) {
+                double dLifeT = g_adDisT12[nDisEx] / log(2);
+                double dDecayTime = ranEv.Exp(dLifeT);
+                dTimeToLvl += dDecayTime;
+              }
               bIsAlive = TakeStep( // no variable change if !bIsAlive
                   nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real, adConWid, adDisWid,
                   arConState, ranEv);
@@ -2122,7 +2124,8 @@ void RAINIER(int g_nRunNum = 1) {
                 }
               } // bench
 
-              dTimeToLvl += GetDecayTime(dTotWid, ranEv);
+              if (dTotWid)
+                dTimeToLvl += GetDecayTime(dTotWid, ranEv);
               bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,
                                   adConWid, adDisWid, arConState, ranEv);
             } // end of decay
@@ -2159,6 +2162,8 @@ void RAINIER(int g_nRunNum = 1) {
                 v_nSpb.push_back(nSpb);
                 v_nPar.push_back(nPar);
                 v_dEx.push_back(dExPost);
+                if (nConEx >= 0)
+                  dTotWid = GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState);
                 v_dTotWidth.push_back(nConEx < 0 ? log(2) * g_dHBar / g_adDisT12[nDisEx] : dTotWid);
 #endif
 #endif
