@@ -391,8 +391,8 @@ void AnalyzeDRTSC() { // Primary to select levels
 
   hfEmpty->GetXaxis()->SetTitle("E_{#gamma} (MeV)");
   hfEmpty->GetYaxis()->SetTitle("f(E_{#gamma}) (arb)");
-  hfEmpty->GetXaxis()->SetRangeUser(0.0, 8.0);
-  hfEmpty->GetYaxis()->SetRangeUser(1e-9, 1e-7);
+  hfEmpty->GetXaxis()->SetRangeUser(0.0, dExIMax);
+  hfEmpty->GetYaxis()->SetRangeUser(1e-10, 1e-7);
   hfEmpty->Draw();
 
   TLegend *legPrim = new TLegend(0.377, 0.606, 0.642, 0.877);
@@ -635,6 +635,7 @@ void AnalyzeCascade(int nEntryID = 0, int exim0 = nExIMean - 1, int real0 = nRea
   gCascade->SetTitle(Form("Entry %d | T = %.2e fs", nEntryID, dTotFeedingTime));
   gCascade->Draw("AP");
 
+  double dXLevel = 0.08 - 0.02, dXInfo = 1.36 - 0.85;
   for (int nLvl = 0; nLvl < nLevelNum; nLvl++) {
     TLine *lLevel = new TLine(0.1, adEx[nLvl], 0.5, adEx[nLvl]);
     if (adTotWidth[nLvl] < dHBar / 1e12) // 1ms
@@ -647,9 +648,10 @@ void AnalyzeCascade(int nEntryID = 0, int exim0 = nExIMean - 1, int real0 = nRea
 
     TLatex *lLevelID = new TLatex();
     if (nLvl && (adEx[nLvl - 1] - adEx[nLvl]) / adEx[0] <= 0.03)
-      lLevelID->SetText(0.02, adEx[nLvl], Form("%2d", anLevel[nLvl]));
+      dXLevel = 0.08 - dXLevel;
     else
-      lLevelID->SetText(0.06, adEx[nLvl], Form("%2d", anLevel[nLvl]));
+      dXInfo = 1.36 - 0.02;
+    lLevelID->SetText(dXLevel, adEx[nLvl], Form("%2d", anLevel[nLvl]));
     lLevelID->SetTextSize(0.03);
     lLevelID->SetTextColor(kBlack);
     lLevelID->SetTextAlign(12);
@@ -686,9 +688,10 @@ void AnalyzeCascade(int nEntryID = 0, int exim0 = nExIMean - 1, int real0 = nRea
     TString sLevelInfo =
         Form("%07.2f %2d^{%s} %s", adEx[nLvl] * 1e3, anSpb[nLvl], (anPar[nLvl] == 1) ? "+" : "-", sLevelLife.Data());
     if (nLvl && (adEx[nLvl - 1] - adEx[nLvl]) / adEx[0] <= 0.03)
-      lLevelInfo->SetText(0.85, adEx[nLvl], sLevelInfo);
+      dXInfo = 1.36 - dXInfo;
     else
-      lLevelInfo->SetText(0.51, adEx[nLvl], sLevelInfo);
+      dXInfo = 1.36 - 0.85;
+    lLevelInfo->SetText(dXInfo, adEx[nLvl], sLevelInfo);
     lLevelInfo->SetTextSize(0.03);
     lLevelInfo->SetTextColor(kBlack);
     lLevelInfo->SetTextAlign(12);
