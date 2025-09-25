@@ -19,8 +19,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////// Nuclei Settings /////////////////////////////////////////
-const int g_nZ = 56;      // proton number
-const int g_nAMass = 142; // proton + neutron number
+const int g_nZ = 38;     // proton number
+const int g_nAMass = 90; // proton + neutron number
 
 ////////////////////// Run Settings ////////////////////////////////////////////
 const int g_nReal = 1;                            // number of realizations of nuclear level scheme
@@ -29,10 +29,10 @@ const int g_nEbins = 100;                         // number of progess bins
 const int g_nEvUpdate = int(g_nEvent / g_nEbins); // print progress to screen at this interval
 
 ////////////////////// Detector Settings ///////////////////////////////////////
-// #define bExIResConst // constant energy resolution
+#define bExIResConst // constant energy resolution
 #ifdef bExIResConst
-const double g_dExIRes = 0.2; // FWHM (energy resolution) in MeV, std dev sigma = FWHM / 2.355
-#else                         // p[0] * pow(x, p[1])
+const double g_dExIRes = 0.040 * 2 / 2.355; // FWHM (energy resolution) in MeV, std dev sigma = FWHM / 2.355
+#else                                       // p[0] * pow(x, p[1])
 const double g_dExIResp0 = 2.8;
 const double g_dExIResp1 = 0.55;
 #endif
@@ -62,13 +62,14 @@ const double g_dExIResp1 = 0.55;
 
 const int g_nEgBin = 600;
 ///// JPop Analysis /////
-const double g_dPlotSpMax = 20.0;
+const double g_dPlotSpMax = 7;
 // const int g_anPopLvl[] = {4,6,8,10,7,9};// low-ly populated lvls,0 = gs //56Fe
 const int g_anPopLvl[] = {13, 8, 14, 10, 6, 11}; // 144Nd
 
 ///// DRTSC Analysis /////
 // const int g_anDRTSC[] = {1,3,5,8,12,13,15}; // 56Fe
-const int g_anDRTSC[] = {1, 4, 6, 15}; // 144Nd
+// const int g_anDRTSC[] = {1, 4, 6, 15}; // 144Nd
+const int g_anDRTSC[] = {1, 3, 8, 18, 20, 29, 41, 58, 61}; // 90Sr
 const int g_nDRTSCSpin = 2;
 const int g_nDRTSCParity = 1;
 
@@ -84,7 +85,7 @@ const double g_dFeedTimeMax = 1e6; // fs, harder to pick out multistep decay at 
 
 ////////////////////// Discrete Settings ///////////////////////////////////////
 // #define bPrintLvl // print both discrete and constructed lvl schemes
-const int g_nDisLvlMax = 38; // only trust level scheme to here, sets ECrit
+const int g_nDisLvlMax = 84; // only trust level scheme to here, sets ECrit
 
 ////////////////////// Excitation Settings /////////////////////////////////////
 // choose one, fill in corresponding params:
@@ -112,14 +113,16 @@ const double g_adBRI[] = {0,      0,     0,      0,      0.014,  0.58,   0.0094,
 
 #ifdef bExSpread // similar to (p,p'), (a,a'), (he3,a'), etc.
 // populates J according to intrinsic distribution, u can hardcode something else
-const double g_dExIMax = 8.0; // MeV; constructed lvl scheme built up to this
+const double g_dExIMax = 6.067; // MeV; constructed lvl scheme built up to this
 // dont exceed with init excitations - gaus might sample higher than expected
-const double g_adExIMean[] = {3.0, 4.0, 5.0, 6.0, 7.0}; // MeV
-#define bJIUnderlying                                   // initial population = intrinsic J dist of the nucleus
-// #define bJIPoisson
+const double g_adExIMean[] = {5.867, 5.947, 6.027}; // MeV
+
+const int g_nConSpbMax = 5; // constructed # spin bins, small for light ion rxn
+// #define bJIUnderlying                 // initial population = intrinsic J dist of the nucleus
+#define bJIPoisson
 // #define bJIGaus
 #ifdef bJIPoisson
-const double g_dJIMean = 3.5;
+const double g_dJIMean = 2;
 #endif
 #ifdef bJIGaus
 const double g_dJIMean = 3.5;
@@ -139,8 +142,8 @@ const double g_dExRes = 0.2 / 2.355; // excitation resolution on g_ah2ExEg
 ///// Bins /////
 #define bForceBinNum // else force bin spacing
 #ifdef bForceBinNum
-double g_dConESpac;         // constructed E bin spacing
-const int g_nConEBin = 400; // number of energy bins in constructed scheme
+double g_dConESpac;       // constructed E bin spacing
+const int g_nConEBin = 3; // number of energy bins in constructed scheme
 #else
 const double g_dConESpac = 0.01; // MeV; wont matter if forcing bin number
 int g_nConEBin;
@@ -172,7 +175,7 @@ const double g_dE0 = -1.31817;  // MeV
 #endif
 
 #ifdef bLD_BSFG
-const double g_dE1 = 0.968; // MeV, excitation energy shift
+const double g_dE1 = 1.43793; // MeV, excitation energy shift
 // const double g_dDeuPair = 2.698; // MeV; can get from ROBIN: Pa_prime
 // const double g_dE1 = g_dDeuPair * 0.5 - 0.381; // von Egidy fit
 #endif
@@ -184,7 +187,7 @@ const double g_dE1 = 0.968; // MeV, excitation energy shift
 // #define bLDaEx // a(Ex) = aAsym * (1 + dW * (1 - exp(-Gam * Eff) / dEff) )
 
 #ifdef bLDaConst
-const double g_dLDa = 14.58; // MeV^-1 aka "LD parameter a"
+const double g_dLDa = 10.55095; // MeV^-1 aka "LD parameter a"
 #endif
 #ifdef bLDaEx
 const double g_dLDaAsym = 14.58; // MeV^-1; Asymptotic value, a(Ex->Inf)
@@ -251,17 +254,17 @@ const double g_dNu = 0.5; // See Koehler PRL105,072502(2010): measured nu~0.5
 // #define bE1_KopChr // Kopecky Chrien model
 // #define bE1_StdLor // standard Lorentzian
 // #define bE1_UsrDef // user defined
-const double g_adSigE1[] = {317.00, 0.00}; // mb magnitude
-const double g_adEneE1[] = {15.05, 0.01};  // MeV centroid energy, non-zero
-const double g_adGamE1[] = {5.30, 0.00};   // MeV GDR width
+const double g_adSigE1[] = {207.0, 0.00}; // mb magnitude
+const double g_adEneE1[] = {16.70, 0.01}; // MeV centroid energy, non-zero
+const double g_adGamE1[] = {4.20, 0.00};  // MeV GDR width
 //                                  ^^^^ for a 2nd resonance
 
 ///// fM1 /////
 #define bM1_StdLor  // standard Lorentzian, parameterized by Prestwich
 // #define bM1_UsrDef // user defined
 // #define bM1StrUpbend // Oslo observed low energy upbend aka enhancement
-const double g_adSigM1[] = {0.370, 0.00}; // mb magnitude
-const double g_adEneM1[] = {7.820, 0.01}; // MeV centroid energy, non-zero
+const double g_adSigM1[] = {0.629, 0.00}; // mb magnitude
+const double g_adEneM1[] = {9.149, 0.01}; // MeV centroid energy, non-zero
 const double g_adGamM1[] = {4.000, 0.00}; // MeV GDR width
 #ifdef bM1StrUpbend // soft pole behavior: C * exp(-A * Eg)
 const double g_dUpbendM1Const = 5e-8; // C
@@ -361,7 +364,6 @@ const int g_nDRTSC = sizeof(g_anDRTSC) / sizeof(int);
 
 const bool g_bIsEvenA = !(g_nAMass % 2);
 const int g_nDisLvlGamMax = 15; // max gammas in for a discrete lvl
-const int g_nConSpbMax = 21;    // constructed # spin bins, small for light ion rxn
 
 ///////////////////////// Discrete Input File //////////////////////////////////
 double g_adDisEne[g_nDisLvlMax];                     // discrete lvl energy
@@ -804,22 +806,22 @@ void PrintConLvl() {
   int nSpbPrint = g_nConSpbMax - 1;
   cout << "****** Constructed ******" << endl;
   cout << "More levels exist at higher spins" << endl;
-  cout << "Parity   ";
+  cout << "Parity    ";
   for (int spb = 0; spb <= nSpbPrint; spb++) {
-    cout << "-" << " ";
+    cout << "-" << "  ";
   }
   cout << " ";
   for (int spb = 0; spb <= nSpbPrint; spb++) {
-    cout << "+" << " ";
+    cout << "+" << "  ";
   }
   cout << endl;
-  cout << "Spin Bin ";
+  cout << "Spin Bin  ";
   for (int spb = nSpbPrint; spb >= 0; spb--) {
-    cout << spb % 10 << " ";
+    cout << spb % 10 << "  ";
   }
   cout << " ";
   for (int spb = 0; spb <= nSpbPrint; spb++) {
-    cout << spb % 10 << " ";
+    cout << spb % 10 << "  ";
   }
   cout << endl;
 
@@ -829,13 +831,13 @@ void PrintConLvl() {
     int par = 0, nCnt = 0;
     for (int spb = nSpbPrint; spb >= 0; spb--) {
       nCnt += g_anConLvl[EJP(ex, spb, par)];
-      cout << g_anConLvl[EJP(ex, spb, par)] << "|";
+      cout << setw(2) << g_anConLvl[EJP(ex, spb, par)] << "|";
     } // sp bin
     cout << " ";
     par = 1;
     for (int spb = 0; spb <= nSpbPrint; spb++) {
       nCnt += g_anConLvl[EJP(ex, spb, par)];
-      cout << g_anConLvl[EJP(ex, spb, par)] << "|";
+      cout << setw(2) << g_anConLvl[EJP(ex, spb, par)] << "|";
     } // sp bin
     // printing energy of every level in bin would be so many more lines
     // but could be done with something like:
@@ -1671,6 +1673,9 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
 
 #ifdef bJIPoisson
     nSpbI = ranEv.Poisson(g_dJIMean); // Poisson J dist
+    // Limit to reasonable spins, only for 90Sr
+    while (nSpbI >= 7 || nSpbI <= 1 || (nParI && nSpbI == 6))
+      nSpbI = ranEv.Poisson(g_dJIMean);
 #endif
 
 #ifdef bJIGaus
@@ -2169,7 +2174,9 @@ void RAINIER(int g_nRunNum = 1) {
 #endif
 
                 double dExDet = dExI + ranEv.Gaus(0.0, GetExIRes(dExI)); // particle resolution
-                g_ahGSpec[real][exim]->Fill(dEg);
+                // Add detector resolution to gamma
+                g_ahGSpec[real][exim]->Fill(dEg + 0.92 * pow(dEg * 1e3, 0.52) * ranEv.Gaus(0.0, 1) / 1e3);
+                // g_ahGSpec[real][exim]->Fill(dEg);
                 g_ah2ExEg[real][exim]->Fill(dEg * 1000, dExDet * 1000);
                 if (nStep == 1)
                   g_ah21Gen[real][exim]->Fill(dEg * 1000, dExDet * 1000);
