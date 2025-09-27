@@ -1607,7 +1607,7 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
   nExI = g_nConEBin - 1;
 #else
   double dExI = g_dExIMax;
-  nExI = round((dExI - g_dECrit) / g_dConESpac);
+  nExI = int((dExI - g_dECrit) / g_dConESpac);
 #endif
   nSpbI = int(g_dSpI);
   nParI = g_dParI;
@@ -1623,7 +1623,7 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
     dBRSum += g_adBRI[state];
     if (dBRSum > dRanState) {
       double dExI = g_adExI[state];
-      nExI = round((dExI - g_dECrit) / g_dConESpac);
+      nExI = int((dExI - g_dECrit) / g_dConESpac);
       nSpbI = int(g_adSpI[state]);
       nParI = g_anParI[state];
       nDisEx = g_nDisLvlMax;
@@ -1695,9 +1695,9 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
     while (!bFoundLvl && nAttempt < nMaxAttempt) { // dont pop not existent lvls
       nAttempt++;
 #ifdef bExSpreadGaus
-      nExI = round((dExIMean - g_dECrit + ranEv.Gaus(0.0, dExIRes)) / g_dConESpac);
+      nExI = int((dExIMean - g_dECrit + ranEv.Gaus(0.0, dExIRes)) / g_dConESpac);
 #else
-      nExI = round((dExIMean - g_dECrit + ranEv.Uniform(-dExIFWHM1, dExIFWHM2)) / g_dConESpac);
+      nExI = int((dExIMean - g_dECrit + ranEv.Uniform(-dExIFWHM1, dExIFWHM2)) / g_dConESpac);
       if (nExI == g_nConEBin)
         nExI -= 1;
 #endif
@@ -1769,7 +1769,7 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
           // assume equipartition
           nParI = ranEv.Integer(2); // equal positive:1 and negative:0
           nSpbI = int(dSp);         // should work for both even and odd A
-          nExI = round((dEx - g_dECrit) / g_dConESpac);
+          nExI = int((dEx - g_dECrit) / g_dConESpac);
           if (nExI > g_nConEBin)
             cerr << "err: ExI above constructed max" << endl;
           if (nExI < 0)
