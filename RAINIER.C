@@ -59,6 +59,26 @@ const double g_dExIResp1 = 0.55;
 // 0: don't save cascade info
 // 1: save ngamma and gammas
 // 2: 1 + states info
+#define nCascadeVerbose 1
+
+// if false, all realizations will be treated as one big one for analysis purposes, so more
+// stats but less fluct
+// #define bSeperateRealization
+
+#if nCascadeVerbose >= 1
+#include <vector>
+
+struct CascadeRec {
+  int nGammaNum;
+  std::vector<double> v_dEg;
+#if nCascadeVerbose >= 2
+  double dTotFeedingTime;
+  std::vector<double> v_dEx, v_dTotWidth;
+  std::vector<int> v_nLevel, v_nSpb, v_nPar;
+#endif
+};
+std::vector<CascadeRec> v_CascadeRec;
+#endif
 
 const int g_nEgBin = 600;
 ///// JPop Analysis /////
@@ -117,7 +137,6 @@ const double g_dExIMax = 6.067; // MeV; constructed lvl scheme built up to this
 // dont exceed with init excitations - gaus might sample higher than expected
 const double g_adExIMean[] = {5.867, 5.947, 6.027}; // MeV
 
-const int g_nConSpbMax = 5; // constructed # spin bins, small for light ion rxn
 // #define bJIUnderlying                 // initial population = intrinsic J dist of the nucleus
 #define bJIPoisson
 // #define bJIGaus
@@ -364,6 +383,7 @@ const int g_nDRTSC = sizeof(g_anDRTSC) / sizeof(int);
 
 const bool g_bIsEvenA = !(g_nAMass % 2);
 const int g_nDisLvlGamMax = 15; // max gammas in for a discrete lvl
+const int g_nConSpbMax = 5;     // constructed # spin bins, small for light ion rxn
 
 ///////////////////////// Discrete Input File //////////////////////////////////
 double g_adDisEne[g_nDisLvlMax];                     // discrete lvl energy
@@ -1674,7 +1694,7 @@ void GetExI(int &nExI, int &nSpbI, int &nParI, int &nDisEx, int &nLvlInBinI, TRa
 #ifdef bJIPoisson
     nSpbI = ranEv.Poisson(g_dJIMean); // Poisson J dist
     // Limit to reasonable spins, only for 90Sr
-    while (nSpbI >= 7 || nSpbI <= 1 || (nParI && nSpbI == 6))
+    while (nSpbI >= 7 || (nParI && nSpbI == 6) || (nParI && !nSpbI))
       nSpbI = ranEv.Poisson(g_dJIMean);
 #endif
 
@@ -1895,26 +1915,6 @@ void RAINIER(int g_nRunNum = 1) {
       cout << "  Initial Excitation Mean: " << dExIMean << " +- " << dExIRes << " MeV" << endl;
 #endif
 
-///// Initialize Tree /////
-#if nCascadeVerbose >= 1
-      TTree *tGSpec = new TTree(Form("tExI%dGSpec_%d", exim, real), "Gamma Spectrum");
-      std::vector<double> v_dEg;
-      int nGammaNum;
-      tGSpec->Branch("vEg", &v_dEg);
-      tGSpec->Branch("GammaNum", &nGammaNum, "nGammaNum/I");
-#if nCascadeVerbose >= 2
-      std::vector<double> v_dEx, v_dTotWidth;
-      std::vector<int> v_nLevel, v_nSpb, v_nPar;
-      double dTotFeedingTime;
-      tGSpec->Branch("vLevel", &v_nLevel);
-      tGSpec->Branch("vSpb", &v_nSpb);
-      tGSpec->Branch("vPar", &v_nPar);
-      tGSpec->Branch("vEx", &v_dEx);
-      tGSpec->Branch("vTotWidth", &v_dTotWidth);
-      tGSpec->Branch("TotFeedingTime", &dTotFeedingTime, "dTotFeedingTime/D");
-#endif
-#endif
-
       ///// Initialize Histograms /////
       g_ah2PopLvl[real][exim] = new TH2D(Form("h2ExI%dPopLvl_%d", exim, real),
                                          Form("Population of Levels: %2.3f MeV, Real%d", dExIMean, real),
@@ -1968,7 +1968,7 @@ void RAINIER(int g_nRunNum = 1) {
 
       g_ahGSpec[real][exim] =
           new TH1D(Form("hExI%dGSpec_%d", exim, real), Form("Gamma Spectrum: %2.3f MeV, Real%d", dExIMean, real),
-                   g_nEgBin, 0.00, dEgMax);
+                   g_nEgBin, 0.00, dEgMax * 1.1);
 
       g_ahICSpec[real][exim] =
           new TH1D(Form("hExI%dICSpec_%d", exim, real),
@@ -2031,16 +2031,19 @@ void RAINIER(int g_nRunNum = 1) {
 #endif
 
 #if nCascadeVerbose >= 1
+          int nGammaNum = 0;
+          std::vector<double> v_dEg;
           v_dEg.clear();
-          nGammaNum = 0;
+#endif
 #if nCascadeVerbose >= 2
+          double dTotFeedingTime = 0.0;
+          std::vector<double> v_dEx, v_dTotWidth;
+          std::vector<int> v_nLevel, v_nSpb, v_nPar;
           v_dEx.clear();
           v_dTotWidth.clear();
           v_nLevel.clear();
           v_nSpb.clear();
           v_nPar.clear();
-          dTotFeedingTime = 0.0;
-#endif
 #endif
 
           TRandom2 ranEv(1 + real + ev * g_nReal);
@@ -2162,6 +2165,7 @@ void RAINIER(int g_nRunNum = 1) {
 #if nCascadeVerbose >= 1
                 v_dEg.push_back(dEg);
                 nGammaNum++;
+#endif
 #if nCascadeVerbose >= 2
                 v_nLevel.push_back(nConEx < 0 ? nDisEx : nConEx + g_nDisLvlMax);
                 v_nSpb.push_back(nSpb);
@@ -2170,7 +2174,6 @@ void RAINIER(int g_nRunNum = 1) {
                 if (nConEx >= 0)
                   dTotWid = GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState);
                 v_dTotWidth.push_back(nConEx < 0 ? log(2) * g_dHBar / g_adDisT12[nDisEx] : dTotWid);
-#endif
 #endif
 
                 double dExDet = dExI + ranEv.Gaus(0.0, GetExIRes(dExI)); // particle resolution
@@ -2227,12 +2230,23 @@ void RAINIER(int g_nRunNum = 1) {
           }
           dTotFeedingTime = dTimeToLvl;
 #endif
-          tGSpec->Fill();
+#if nCascadeVerbose >= 1
+          CascadeRec cascadeRec;
+          cascadeRec.nGammaNum = nGammaNum;
+          cascadeRec.v_dEg = v_dEg;
+#if nCascadeVerbose >= 2
+          cascadeRec.v_nLevel = v_nLevel;
+          cascadeRec.v_nSpb = v_nSpb;
+          cascadeRec.v_nPar = v_nPar;
+          cascadeRec.v_dEx = v_dEx;
+          cascadeRec.v_dTotWidth = v_dTotWidth;
+          cascadeRec.dTotFeedingTime = dTotFeedingTime;
+#endif
+          v_CascadeRec.push_back(cascadeRec);
+#endif
         } //////////////////////////////////////////////////////////////////////
         ////////////////////////// EVENTS //////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
-
-        tGSpec->Write();
 
         // deallocate memory
         delete[] adConWid;
@@ -2248,6 +2262,66 @@ void RAINIER(int g_nRunNum = 1) {
         // cout << "    " << nEle << " internal conversions" << endl;
       } // parallel
       cout << endl << "    " << g_nEvent << " / " << g_nEvent << " processed" << endl << endl;
+
+      ///// Initialize Tree /////
+#if nCascadeVerbose >= 1
+      int nGammaNum = 0;
+      std::vector<double> v_dEg;
+#ifdef bSeperateRealization
+      TTree *tGSpec = new TTree(Form("tExI%dGSpec_%d", exim, real), "Gamma Spectrum");
+      tGSpec->Branch("vEg", &v_dEg);
+      tGSpec->Branch("GammaNum", &nGammaNum, "nGammaNum/I");
+#else
+      TTree *tGSpec;
+      if (!real) {
+        tGSpec = new TTree(Form("tExI%dGSpec", exim), "Gamma Spectrum");
+        tGSpec->Branch("vEg", &v_dEg);
+        tGSpec->Branch("GammaNum", &nGammaNum, "nGammaNum/I");
+      } else
+        tGSpec = (TTree *)fSaveFile->Get(Form("tExI%dGSpec", exim));
+#endif
+#endif
+
+#if nCascadeVerbose >= 2
+      double dTotFeedingTime = 0.0;
+      std::vector<double> v_dEx, v_dTotWidth;
+      std::vector<int> v_nLevel, v_nSpb, v_nPar;
+#ifdef bSeperateRealization
+      tGSpec->Branch("vLevel", &v_nLevel);
+      tGSpec->Branch("vSpb", &v_nSpb);
+      tGSpec->Branch("vPar", &v_nPar);
+      tGSpec->Branch("vEx", &v_dEx);
+      tGSpec->Branch("vTotWidth", &v_dTotWidth);
+      tGSpec->Branch("TotFeedingTime", &dTotFeedingTime, "dTotFeedingTime/D");
+#else
+      if (!real) {
+        tGSpec->Branch("vLevel", &v_nLevel);
+        tGSpec->Branch("vSpb", &v_nSpb);
+        tGSpec->Branch("vPar", &v_nPar);
+        tGSpec->Branch("vEx", &v_dEx);
+        tGSpec->Branch("vTotWidth", &v_dTotWidth);
+        tGSpec->Branch("TotFeedingTime", &dTotFeedingTime, "dTotFeedingTime/D");
+      }
+#endif
+#endif
+
+#if nCascadeVerbose >= 1
+      for (size_t i = 0; i < v_CascadeRec.size(); i++) {
+        v_dEg = v_CascadeRec[i].v_dEg;
+        nGammaNum = v_CascadeRec[i].nGammaNum;
+#if nCascadeVerbose >= 2
+        v_nLevel = v_CascadeRec[i].v_nLevel;
+        v_nSpb = v_CascadeRec[i].v_nSpb;
+        v_nPar = v_CascadeRec[i].v_nPar;
+        v_dEx = v_CascadeRec[i].v_dEx;
+        v_dTotWidth = v_CascadeRec[i].v_dTotWidth;
+        dTotFeedingTime = v_CascadeRec[i].dTotFeedingTime;
+#endif
+        tGSpec->Fill();
+      }
+      tGSpec->Write();
+      v_CascadeRec.clear();
+#endif
 
       ///// plotting preferences /////
       TH2D *g_ah2Temp[] = {g_ah2PopLvl[real][exim], g_ah2FeedTime[real][exim], g_ah2ExEg[real][exim],
@@ -2270,7 +2344,7 @@ void RAINIER(int g_nRunNum = 1) {
         g_ah2Temp[h]->GetZaxis()->CenterTitle();
         g_ah2Temp[h]->GetZaxis()->SetTitle("Counts");
       } // hists
-      g_ah2PopLvl[real][exim]->GetXaxis()->SetTitle("J#Pi");
+      g_ah2PopLvl[real][exim]->GetXaxis()->SetTitle("J#pi");
       g_ah2PopLvl[real][exim]->GetXaxis()->SetNdivisions(20, 0, 0, kFALSE);
       g_ah2PopLvl[real][exim]->GetYaxis()->SetTitle("E_{x} (MeV)");
       g_ah2FeedTime[real][exim]->GetXaxis()->SetTitle("Discrete Level Number");
