@@ -55,7 +55,6 @@ const double g_dExIResp1 = 0.55;
 #endif           // parallel
 
 ////////////////////// Analysis Settings ///////////////////////////////////////
-#define nCascadeVerbose 1
 // 0: don't save cascade info
 // 1: save ngamma and gammas
 // 2: 1 + states info
@@ -2112,9 +2111,6 @@ void RAINIER(int g_nRunNum = 1) {
 #ifdef bExSingle
               if (nConEx == g_nConEBin - 1) { // use saved init width
                 dTotWid = dTotWid1;
-                adConWid = adConWid1;
-                adDisWid = adDisWid1;
-                arConState = arConState1;
               } else { // not at intial state
                 dTotWid = GetWidth(nConEx, nSpb, nPar, nLvlInBin, real, adConWid, adDisWid, arConState);
               } // Ex single
@@ -2132,10 +2128,21 @@ void RAINIER(int g_nRunNum = 1) {
                 }
               } // bench
 
-              if (dTotWid)
+#ifdef bExSingle
+              if (nConEx == g_nConEBin - 1) { // use saved init widths and rands
+                dTimeToLvl += GetDecayTime(dTotWid1, ranEv);
+                bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid1, real,
+                                    adConWid1, adDisWid1, arConState1, ranEv);
+              } else { // not at initial state
                 dTimeToLvl += GetDecayTime(dTotWid, ranEv);
+                bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,
+                                    adConWid, adDisWid, arConState, ranEv);
+              } // Ex Single
+#else
+              dTimeToLvl += GetDecayTime(dTotWid, ranEv);
               bIsAlive = TakeStep(nConEx, nSpb, nPar, nDisEx, nLvlInBin, nTransMade, dMixDelta2, dTotWid, real,
                                   adConWid, adDisWid, arConState, ranEv);
+#endif
             } // end of decay
             nStep++;
 
