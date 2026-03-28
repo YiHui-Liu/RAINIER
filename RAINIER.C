@@ -23,15 +23,15 @@ const int g_nZ = 38;     // proton number
 const int g_nAMass = 90; // proton + neutron number
 
 ////////////////////// Run Settings ////////////////////////////////////////////
-const int g_nReal = 1;                            // number of realizations of nuclear level scheme
-const int g_nEvent = 1e6;                         // number of events per realization (and ExI in bExSpread)
+const int g_nReal = 10;                           // number of realizations of nuclear level scheme
+const int g_nEvent = 1e5;                         // number of events per realization (and ExI in bExSpread)
 const int g_nEbins = 100;                         // number of progess bins
 const int g_nEvUpdate = int(g_nEvent / g_nEbins); // print progress to screen at this interval
 
 ////////////////////// Detector Settings ///////////////////////////////////////
 #define bExIResConst // constant energy resolution
 #ifdef bExIResConst
-const double g_dExIRes = 0.040 * 2 / 2.355; // FWHM (energy resolution) in MeV, std dev sigma = FWHM / 2.355
+const double g_dExIRes = 0.020 * 2 / 2.355; // FWHM (energy resolution) in MeV, std dev sigma = FWHM / 2.355
 #else                                       // p[0] * pow(x, p[1])
 const double g_dExIResp0 = 2.8;
 const double g_dExIResp1 = 0.55;
